@@ -34,7 +34,7 @@ class DiscreteRV:
 
     def find_zero(self, interval: IntegerInterval):
         """ While we could implement this with recursion in logN, the linear time approach is just easier. """
-        for i in range(interval.min, interval.max + 1):
+        for i in range(interval.max - interval.min + 1):
             if interval.min + i == 0:
                 return i
         return None
