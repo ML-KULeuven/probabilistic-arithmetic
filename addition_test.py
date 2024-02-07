@@ -1,4 +1,5 @@
 import os
+
 from discrete_rv import DiscreteRV
 
 
