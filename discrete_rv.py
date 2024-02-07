@@ -54,6 +54,10 @@ class DiscreteRV:
                 return i
         return None
 
+    def E(self):
+        domain = tf.cast(tf.range(self.domain.min, self.domain.max + 1), dtype=tf.float64)
+        return tf.reduce_sum(domain * tf.cast(self.probs, dtype=tf.float64), -1)
+
     def __sub__(self, other: [int, float, 'DiscreteRV']):
         if isinstance(other, (int, float, DiscreteRV)):
             return self + (-other)
