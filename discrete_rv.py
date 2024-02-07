@@ -32,8 +32,18 @@ class DiscreteRV:
         else:
             raise NotImplementedError("You can only add a DiscreteRV or an integer to a DiscreteRV")
 
-    def __sub__(self, other):
-        return self + (-other)
+    def find_zero(self, interval: IntegerInterval):
+        """ While we could implement this with recursion in logN, the linear time approach is just easier. """
+        for i in range(interval.min, interval.max + 1):
+            if interval.min + i == 0:
+                return i
+        return None
+
+    def __sub__(self, other: [int, float, 'DiscreteRV']):
+        if isinstance(other, (int, float, DiscreteRV)):
+            return self + (-other)
+        else:
+            raise NotImplementedError("You can only subtract a DiscreteRV or an integer or a float from a DiscreteRV")
 
     def __neg__(self):
         return DiscreteRV(self.probs[::-1], -self.domain.max, -self.domain.min)
@@ -48,8 +58,22 @@ class DiscreteRV:
         else:
             raise NotImplementedError("You can only multiply a DiscreteRV by an integer or a float")
 
-    def __rmul__(self, other):
-        return self * other
+    def __rmul__(self, other: [int, float]):
+        if isinstance(other, (int, float)):
+            return self * other
+        else:
+            raise NotImplementedError("You can only multiply a DiscreteRV by an integer or a float")
+
+    def __le__(self, other: [int, float, 'DiscreteRV']):
+        if isinstance(other, (int, float, DiscreteRV)):
+            sub = self - other
+            zero_id = self.find_zero(sub.domain)
+            if zero_id is None:
+                return 1.
+            else:
+                return tf.reduce_sum(self.probs[..., :zero_id + 1], -1)
+        else:
+            raise NotImplementedError("You can only compare a DiscreteRV to another DiscreteRV")
 
     def __str__(self):
         return f"DiscreteRV({self.probs.numpy()}, [{self.domain.min}, ..., {self.domain.max}])"
