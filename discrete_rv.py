@@ -71,7 +71,30 @@ class DiscreteRV:
             if zero_id is None:
                 return 1.
             else:
-                return tf.reduce_sum(self.probs[..., :zero_id + 1], -1)
+                return tf.reduce_sum(sub.probs[..., :zero_id + 1], -1)
+        else:
+            raise NotImplementedError("You can only compare a DiscreteRV to another DiscreteRV")
+
+    def __lt__(self, other):
+        if isinstance(other, (int, float, DiscreteRV)):
+            sub = self - other
+            zero_id = self.find_zero(sub.domain)
+            if zero_id is None:
+                return 1.
+            else:
+                return tf.reduce_sum(sub.probs[..., :zero_id], -1)
+        else:
+            raise NotImplementedError("You can only compare a DiscreteRV to another DiscreteRV")
+
+    def __ge__(self, other):
+        if isinstance(other, (int, float, DiscreteRV)):
+            return 1. - (self < other)
+        else:
+            raise NotImplementedError("You can only compare a DiscreteRV to another DiscreteRV")
+
+    def __gt__(self, other):
+        if isinstance(other, (int, float, DiscreteRV)):
+            return 1. - (self <= other)
         else:
             raise NotImplementedError("You can only compare a DiscreteRV to another DiscreteRV")
 
