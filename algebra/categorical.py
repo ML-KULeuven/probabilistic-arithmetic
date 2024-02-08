@@ -54,7 +54,7 @@ class Categorical:
             raise NotImplementedError()
 
     def __str__(self):
-        return f"Cateogorical(lower: {self.lower}, upper: {self.upper})"
+        return f"Categorical(lower: {self.lower}, upper: {self.upper})"
 
     def print_logprobs(self):
         print(f"logprobs: {self.logprobs.numpy()}")
