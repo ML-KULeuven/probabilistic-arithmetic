@@ -36,6 +36,23 @@ class Categorical:
         else:
             raise NotImplementedError()
 
+    def __neg__(self):
+        return Categorical(
+            tf.reverse(self.logprobs, axis=-1), lower=-self.upper, normalize=False
+        )
+
+    def __sub__(self, other):
+        if isinstance(other, (Categorical, int)):
+            return self + (-other)
+        else:
+            raise NotImplementedError()
+
+    def __rsub__(self, other):
+        if isinstance(other, int):
+            return -self + other
+        else:
+            raise NotImplementedError()
+
     def __str__(self):
         return f"Cateogorical(lower: {self.lower}, upper: {self.upper})"
 
