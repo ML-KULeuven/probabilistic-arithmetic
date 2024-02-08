@@ -1,6 +1,8 @@
 import math
 import tensorflow as tf
 
+from .comparison import Comparison
+
 EPSILON = tf.keras.backend.epsilon()
 
 
@@ -49,3 +51,15 @@ def addC2C(x1, x2):
     )
 
     return p, x1.lower + x2.lower
+
+
+def eqz(expression):
+    return expression.engine.create_comparison(expression, "eqz")
+
+
+def lez(expression):
+    return expression.engine.create_comparison(expression, "lez")
+
+
+def ltz(expression):
+    return expression.engine.create_comparison(expression, "ltz")
