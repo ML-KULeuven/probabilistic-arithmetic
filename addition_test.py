@@ -1,20 +1,27 @@
 import os
+import numpy as np
+import tensorflow as tf
 
-from discrete_rv import DiscreteRV
+from categorical import Categorical
 
 
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
-DIGITS = 7
+DIGITS = 2
 
-number1 = DiscreteRV([0.1 for _ in range(10)], 0, 9)
-number2 = DiscreteRV([0.1 for _ in range(10)], 0, 9)
+probs = np.ones([10, 10]) * 0.1
+probs[:, 0] = 0.99
+probs[:, 1:] = 0.01 / 9
+
+number1 = Categorical(probs, 0, 9)
+number2 = Categorical(probs, 0, 9)
 for _ in range(DIGITS - 1):
     number1 = number1 * 10
     number2 = number2 * 10
-    number1 = number1 + DiscreteRV([0.1 for _ in range(10)], 0, 9)
-    number2 = number2 + DiscreteRV([0.1 for _ in range(10)], 0, 9)
+    number1 = number1 + Categorical(probs, 0, 9)
+    number2 = number2 + Categorical(probs, 0, 9)
 
 sum = number1 + number2
 
-print(sum)
+print(tf.reduce_sum(sum.probs, -1))
+print(sum.E)
