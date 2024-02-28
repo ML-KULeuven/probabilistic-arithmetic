@@ -2,16 +2,12 @@ import numpy as np
 import tensorflow as tf
 
 from typing import Union, List
-from plia.arithmetics import addPIntPInt, mulitplyPIntInt, ltz, eqz
+from plia.tools import addPIntPInt, mulitplyPIntInt, ltz, eqz
 
 
-EPS = tf.keras.backend.epsilon()
-
-
-class PInt:
-    def __init__(self, name, logits, lower, normalize):
-        self.name = name
-        self.logprobs = tf.nn.log_softmax(logits, axis=-1) if normalize else logits
+class PArray:
+    def __init__(self, logits, lower):
+        self.logits = logits
         self.lower = lower
 
     @property
@@ -21,6 +17,18 @@ class PInt:
     @property
     def upper(self):
         return self.lower + self.cardinality - 1
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(lower:{self.lower}, upper:{self.upper})"
+
+
+class PInt(PArray):
+    def __init__(self, logits, lower):
+        super().__init__(logits, lower)
+
+    @property
+    def logprobs(self):
+        return tf.nn.log_softmax(self.logits, axis=-1)
 
     @property
     def probs(self):
@@ -49,7 +57,7 @@ class PInt:
             logprobs, lower = mulitplyPIntInt(self, other)
             return PInt(logprobs, lower, normalize=False)
         else:
-            raise NotImplementedError("You can only multiply a PInt by an integer")
+            raise NotImplementedError()
 
     def __radd__(self, other):
         return self + other
@@ -62,46 +70,54 @@ class PInt:
 
     def __lt__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
-            return ltz(self - other)
+            if self.lower >= 0:
+                return False
+            else:
+                logprobs, lower = ltz(self - other)
+                return PIverson(logprobs, lower)
         else:
-            raise NotImplementedError("You can only compare a PInt to another PInt")
+            raise NotImplementedError()
+
+    def __rlt__(self, other):
+        return -self < -other
 
     def __le__(self, other):
-        if isinstance(other, (int, tf.Tensor, PInt)):
-            return ltz(self - other + 1)
-        else:
-            raise NotImplementedError("You can only compare a PInt to another PInt")
+        self < other + 1
 
-    def __ge__(self, other):
-        if isinstance(other, (int, tf.Tensor, PInt)):
-            return 1.0 - (self < other)
-        else:
-            raise NotImplementedError("You can only compare a PInt to another PInt")
+    def __rle__(self, other):
+        -self < -other + 1
 
     def __gt__(self, other):
-        if isinstance(other, (int, tf.Tensor, PInt)):
-            return 1.0 - (self <= other)
-        else:
-            raise NotImplementedError("You can only compare a PInt to another PInt")
+        -self < -other
+
+    def __rgt__(self, other):
+        self < other
+
+    def __ge__(self, other):
+        -self < -other + 1
+
+    def __rge__(self, other):
+        self < other + 1
 
     def __eq__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
-            return eqz(self - other)
+            logprobs, lower = eqz(self - other)
+            return PIverson(logprobs, lower)
         else:
-            raise NotImplementedError("You can only compare a PInt to another PInt")
+            raise NotImplementedError()
 
     def __ne__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
-            return 1.0 - (self == other)
+            return ~(self == other)
         else:
-            raise NotImplementedError("You can only compare a PInt to another PInt")
+            raise NotImplementedError()
 
-    # @property
-    # def E(self):
-    #     domain = tf.cast(
-    #         tf.range(self.domain.min, self.domain.max + 1), dtype=tf.float64
-    #     )
-    #     return tf.reduce_sum(domain * tf.cast(self.probs, dtype=tf.float64), -1)
 
-    def __str__(self):
-        return f"PInt({self.probs}, [{self.domain.min}, ..., {self.domain.max}])"
+class PIverson(PArray):
+
+    def __init__(self, logits, lower, negated=False):
+        super().__init__(logits, lower)
+        self.negated = False
+
+    def __ne__(self, pint):
+        return PInt(pint.logprobs, print.lower, negated=True)

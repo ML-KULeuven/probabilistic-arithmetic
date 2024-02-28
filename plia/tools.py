@@ -92,16 +92,15 @@ def mulitplyPIntInt(x1, x2):
 
 
 def ltz(x):
-    if x.lower >= 0:
-        return -np.inf
-    else:
-        return tf.math.reduce_logsumexp(
-            x.logprobs[..., : abs(x.lower)], axis=-1, keepdims=True
-        )
+    return x.logprobs[..., : abs(x.lower)], x.lower
 
 
 def eqz(x):
     if x.lower > 0 or x.upper < 0:
         return -np.inf
     else:
-        return x.logprobs[..., abs(x.lower)]
+        return x.logprobs[..., abs(x.lower) : abs(x.lower) + 1], 0
+
+
+def ifthenelse(variable, condition, branch1, branch2):
+    pass
