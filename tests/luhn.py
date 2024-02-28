@@ -1,30 +1,32 @@
 import os
+import functools
 
 import numpy as np
 import tensorflow as tf
 
-from plia.tools import ifthenelse
+from plia import PInt, ifthenelse
 
 
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
-ID_LENGTH = 5
+def tbranch(check, x):
+    return check + 2 * x
 
-probs = np.ones([10, 10]) * 0.1
-probs[:, 0] = 0.99
-probs[:, 1:] = 0.01 / 9
+
+def fbranch(check, x):
+    return tbranch(check, x) - 9
 
 
 def checksum(identifier):
-    check = np.array([-np.inf] * 9)
-    check[4] = 0.0
+    check = PInt(tf.convert_to_tensor([-np.inf]), lower=0)
 
     for i, digit in enumerate(identifier):
         if i % 2 == len(identifier) % 2:
-            check = check + ifthenelse(
-                digit, lambda x: x > 4, lambda x: 2 * x - 9, lambda x: 2 * x
-            )
+            tb = functools.partial(tbranch, check=check)
+            fb = functools.partial(fbranch, check=check)
+
+            check = ifthenelse(digit, lt=5, tbranch=tb, fbranch=fb)
         else:
             check = check + digit
 

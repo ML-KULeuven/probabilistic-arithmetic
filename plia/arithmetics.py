@@ -43,7 +43,7 @@ def addPIntPInt(x1, x2):
     domain = x1.domain + x2.domain
     cardinality = domain.max - domain.min + 1
 
-    padding = [[0, 0] for _ in range(len(x1.logprobs.shape) - 1)]
+    padding = [[0, 0] for _ in range(len(x1.logits.shape) - 1)]
 
     x1_padding = max(0, cardinality - x1.cardinality)
     x2_padding = max(0, cardinality - x2.cardinality)
@@ -52,9 +52,9 @@ def addPIntPInt(x1, x2):
     x2_padding = padding + [[0, x2_padding]]
 
     p = log_convolution(
-        x1.logprobs,
+        x1.logits,
         x1_padding,
-        x2.logprobs,
+        x2.logits,
         x2_padding,
         cardinality,
     )
@@ -66,8 +66,8 @@ def addPIntPInt(x1, x2):
 #     domain = x1.domain + x2.domain
 #     n = domain.max - domain.min + 1
 
-#     fft1 = tf.signal.rfft(tf.cast(x1.logprobs, dtype=tf.float64), [n])
-#     fft2 = tf.signal.rfft(tf.cast(x2.logprobs, dtype=tf.float64), [n])
+#     fft1 = tf.signal.rfft(tf.cast(x1.logits, dtype=tf.float64), [n])
+#     fft2 = tf.signal.rfft(tf.cast(x2.logits, dtype=tf.float64), [n])
 #     fft = fft1 * fft2
 #     probs = tf.signal.irfft(fft, [n])
 #     probs /= tf.reduce_sum(probs)
@@ -77,30 +77,15 @@ def addPIntPInt(x1, x2):
 
 
 def mulitplyPIntInt(x1, x2):
-    logprobs = tf.reshape(x1.logprobs, [-1, x1.logprobs.shape[-1], 1])
-    output_shape = [logprobs.shape[0], x2 * logprobs.shape[1], 1]
-    logprobs = tf.nn.conv1d_transpose(
-        tf.cast(logprobs, dtype=tf.float32),
+    logits = tf.reshape(x1.logits, [-1, x1.logits.shape[-1], 1])
+    output_shape = [logits.shape[0], x2 * logits.shape[1], 1]
+    logits = tf.nn.conv1d_transpose(
+        tf.cast(logits, dtype=tf.float32),
         tf.ones([1, 1, 1]),
         output_shape,
         strides=x2,
         padding="VALID",
     )
-    logprobs = tf.where(logprobs == 0, -np.inf, logprobs)
-    logprobs = logprobs[:, :, 0]
-    return logprobs, x1.lower * x2
-
-
-def ltz(x):
-    return x.logprobs[..., : abs(x.lower)], x.lower
-
-
-def eqz(x):
-    if x.lower > 0 or x.upper < 0:
-        return -np.inf
-    else:
-        return x.logprobs[..., abs(x.lower) : abs(x.lower) + 1], 0
-
-
-def ifthenelse(variable, condition, branch1, branch2):
-    pass
+    logits = tf.where(logits == 0, -np.inf, logits)
+    logits = logits[:, :, 0]
+    return logits, x1.lower * x2

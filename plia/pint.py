@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import Union, List
-from plia.tools import addPIntPInt, mulitplyPIntInt, ltz, eqz
+from plia.arithmetics import addPIntPInt, mulitplyPIntInt, ltz, eqz
 
 
 class PArray:
@@ -12,7 +12,7 @@ class PArray:
 
     @property
     def cardinality(self):
-        return self.logprobs.shape[-1]
+        return self.logits.shape[-1]
 
     @property
     def upper(self):
@@ -36,15 +36,15 @@ class PInt(PArray):
 
     def __add__(self, other):
         if isinstance(other, PInt):
-            logprobs, lower = addPIntPInt(self, other)
-            return PInt(logprobs, lower=lower, normalize=False)
+            logits, lower = addPIntPInt(self, other)
+            return PInt(logits, lower=lower, normalize=False)
         elif isinstance(other, int):
-            return PInt(self.logprobs, lower=self.lower + other, normalize=False)
+            return PInt(self.logits, lower=self.lower + other)
         else:
             raise NotImplementedError()
 
     def __neg__(self):
-        return PInt(self.logprobs[::-1], lower=-self.upper, normalize=False)
+        return PInt(self.logits[::-1], lower=-self.upper)
 
     def __sub__(self, other):
         if isinstance(other, (PInt, int)):
@@ -54,8 +54,8 @@ class PInt(PArray):
 
     def __mul__(self, other: int):
         if isinstance(other, int):
-            logprobs, lower = mulitplyPIntInt(self, other)
-            return PInt(logprobs, lower, normalize=False)
+            logits, lower = mulitplyPIntInt(self, other)
+            return PInt(logits, lower, normalize=False)
         else:
             raise NotImplementedError()
 
@@ -70,11 +70,12 @@ class PInt(PArray):
 
     def __lt__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
-            if self.lower >= 0:
+            x = self - other
+            if x.lower >= 0:
                 return False
             else:
-                logprobs, lower = ltz(self - other)
-                return PIverson(logprobs, lower)
+                logits = x.logits[..., : abs(x.lower)]
+                return PIverson(logits, x.lower)
         else:
             raise NotImplementedError()
 
@@ -101,8 +102,12 @@ class PInt(PArray):
 
     def __eq__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
-            logprobs, lower = eqz(self - other)
-            return PIverson(logprobs, lower)
+            x = self - other
+            if x.lower > 0 or x.upper < 0:
+                return False
+            else:
+                logits = x.logits[..., abs(x.lower) : abs(x.lower) + 1]
+            return PIverson(logits, 0)
         else:
             raise NotImplementedError()
 
@@ -120,4 +125,4 @@ class PIverson(PArray):
         self.negated = False
 
     def __ne__(self, pint):
-        return PInt(pint.logprobs, print.lower, negated=True)
+        return PIverson(pint.logits, print.lower, negated=True)
