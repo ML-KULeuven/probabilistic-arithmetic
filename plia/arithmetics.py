@@ -1,10 +1,10 @@
 import math
 import tensorflow as tf
-
-from algebra.integer_interval import IntegerInterval
+import numpy as np
 
 
 EPSILON = tf.keras.backend.epsilon()
+
 
 def log_convolution(p1, p1_padding, p2, p2_padding, signal_length):
     a1 = tf.math.reduce_max(p1, axis=-1, keepdims=True)
@@ -38,7 +38,8 @@ def log_convolution(p1, p1_padding, p2, p2_padding, signal_length):
     return logp + a1 + a2
     # return logp - tf.math.reduce_logsumexp(logp, axis=-1, keepdims=True)
 
-def addC2C(x1, x2):
+
+def addPIntPInt(x1, x2):
     domain = x1.domain + x2.domain
     cardinality = domain.max - domain.min + 1
 
@@ -60,6 +61,7 @@ def addC2C(x1, x2):
 
     return p, domain
 
+
 # def addC2C(x1, x2):
 #     domain = x1.domain + x2.domain
 #     n = domain.max - domain.min + 1
@@ -72,3 +74,34 @@ def addC2C(x1, x2):
 #     probs = tf.cast(probs, dtype=tf.float32)
 
 #     return tf.math.log(probs + EPSILON), domain
+
+
+def mulitplyPIntInt(x1, x2):
+    logprobs = tf.reshape(x1.logprobs, [-1, x1.logprobs.shape[-1], 1])
+    output_shape = [logprobs.shape[0], x2 * logprobs.shape[1], 1]
+    logprobs = tf.nn.conv1d_transpose(
+        tf.cast(logprobs, dtype=tf.float32),
+        tf.ones([1, 1, 1]),
+        output_shape,
+        strides=x2,
+        padding="VALID",
+    )
+    logprobs = tf.where(logprobs == 0, -np.inf, logprobs)
+    logprobs = logprobs[:, :, 0]
+    return logprobs, x1.lower * x2
+
+
+def ltz(x):
+    if x.lower >= 0:
+        return -np.inf
+    else:
+        return tf.math.reduce_logsumexp(
+            x.logprobs[..., : abs(x.lower)], axis=-1, keepdims=True
+        )
+
+
+def eqz(x):
+    if x.lower > 0 or x.upper < 0:
+        return -np.inf
+    else:
+        return x.logprobs[..., abs(x.lower)]
