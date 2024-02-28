@@ -2,19 +2,17 @@ import os
 import time
 import pickle
 
-from categorical import Categorical
+from algebra.categorical import Categorical
 
 
+device = '0'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = device
 
 
-def run_comparison(name, max_bitwidth=24):
-    for bitwidth in range(max_bitwidth, max_bitwidth + 1):
-        addition_times = []
-        le_times = []
-        exp_times = []
-
+def run_comparison(name, max_bitwidth=23):
+    times = []
+    for bitwidth in range(max_bitwidth + 1):
         """ 
         Watch out in this experiment! Tensorflow compiles and caches some operations in the background! 
         For example, since the addition is used in the comparisons, it will use the cached operation from the first run!
@@ -30,21 +28,28 @@ def run_comparison(name, max_bitwidth=24):
         if name == 'addition':
             addition_time = time.time()
             addition = number1 + number2
-            addition_times.append(time.time() - addition_time)
-            print(addition_times[-1])
+            times.append(time.time() - addition_time)
+            print(times[-1])
         elif name == 'le':
             le_time = time.time()
             le = number1 <= number2
-            le_times.append(time.time() - le_time)
-            print(le_times[-1])
+            times.append(time.time() - le_time)
+            print(times[-1])
         elif name == 'exp':
             exp_time = time.time()
-            exp = number1.E
-            exp_times.append(time.time() - exp_time)
-            print(exp_times[-1])
+            exp = (number1 + number2).E
+            times.append(time.time() - exp_time)
+            print(times[-1])
+        elif name == 'eq':
+            eq_time = time.time()
+            eq = number1 == number2
+            times.append(time.time() - eq_time)
+            print(times[-1])
+        else:
+            raise ValueError(f"Unknown name: {name}")
 
 
-    # with open('comparison_test.pkl', 'wb') as f:
-    #     pickle.dump({'addition_times': addition_times, 'le_times': le_times, 'exp_times': exp_times}, f)
+    with open(f'comparison_test_{name}_device_{device}.pkl', 'wb') as f:
+        pickle.dump(times, f)
 
-run_comparison("addition")
+run_comparison("eq")

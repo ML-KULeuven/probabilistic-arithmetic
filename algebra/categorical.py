@@ -2,8 +2,8 @@ import numpy as np
 import tensorflow as tf
 
 from typing import Union, List
-from integer_interval import IntegerInterval
-from tools import addC2C
+from algebra.integer_interval import IntegerInterval
+from algebra.tools import addC2C
 
 
 EPS = tf.keras.backend.epsilon()

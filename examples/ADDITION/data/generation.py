@@ -45,8 +45,8 @@ def create_loader(N, BATCH_SIZE=10, log=False):
         target = "prob"
 
     try:
-        train_gen = pickle.load(open(f'ADDITION/data/data_{N}_train_batch{BATCH_SIZE}_{target}.pkl', 'rb'))
-        test_gen = pickle.load(open(f'ADDITION/data/data_{N}_test_batch{BATCH_SIZE}_{target}.pkl', 'rb'))
+        train_gen = pickle.load(open(f'examples/ADDITION/data/data_{N}_train_batch{BATCH_SIZE}_{target}.pkl', 'rb'))
+        test_gen = pickle.load(open(f'examples/ADDITION/data/data_{N}_test_batch{BATCH_SIZE}_{target}.pkl', 'rb'))
 
         train_dataset = tf.data.Dataset.from_generator(lambda: train_gen, (tf.float32, tf.float32, tf.int64, tf.float32)).shuffle(
             TRAIN_BUF).batch(BATCH_SIZE)
@@ -56,7 +56,7 @@ def create_loader(N, BATCH_SIZE=10, log=False):
             BATCH_SIZE)
 
         return train_dataset, val_dataset, test_dataset
-    except:
+    except FileNotFoundError:
         pass
 
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -71,7 +71,7 @@ def create_loader(N, BATCH_SIZE=10, log=False):
     val_dataset = tf.data.Dataset.from_generator(lambda: test_gen[:VAL_BUF], (tf.float32, tf.float32, tf.int64, tf.float32)).shuffle(VAL_BUF).batch(BATCH_SIZE)
     test_dataset = tf.data.Dataset.from_generator(lambda: test_gen[VAL_BUF:], (tf.float32, tf.float32, tf.int64, tf.float32)).shuffle(TEST_BUF).batch(BATCH_SIZE)
 
-    pickle.dump(train_gen, open(f'ADDITION/data/data_{N}_train_batch{BATCH_SIZE}_{target}.pkl', 'wb'))
-    pickle.dump(test_gen, open(f'ADDITION/data/data_{N}_test_batch{BATCH_SIZE}_{target}.pkl', 'wb'))
+    pickle.dump(train_gen, open(f'examples/ADDITION/data/data_{N}_train_batch{BATCH_SIZE}_{target}.pkl', 'wb'))
+    pickle.dump(test_gen, open(f'examples/ADDITION/data/data_{N}_test_batch{BATCH_SIZE}_{target}.pkl', 'wb'))
 
     return train_dataset, val_dataset, test_dataset

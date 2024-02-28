@@ -1,7 +1,7 @@
 import math
 import tensorflow as tf
 
-from integer_interval import IntegerInterval
+from algebra.integer_interval import IntegerInterval
 
 
 EPSILON = tf.keras.backend.epsilon()

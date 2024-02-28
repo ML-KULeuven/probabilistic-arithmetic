@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from categorical import Categorical
+from algebra.categorical import Categorical
 
 
 class SumClassifier(tf.keras.Model):
