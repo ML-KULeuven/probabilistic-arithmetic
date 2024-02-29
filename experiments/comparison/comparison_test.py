@@ -2,7 +2,7 @@ import os
 import time
 import pickle
 
-from plia.pint import PInt
+from plia import construct_pint
 
 
 device = "0"
@@ -22,10 +22,10 @@ def run_comparison(name, max_bitwidth=23):
         Additional info: bitwidth of 24 uses +- 15GB of VRAM and seems to be max for GPU
         """
 
-        number1 = PInt(
+        number1 = construct_pint(
             [1 / 2**bitwidth - 1 for _ in range(2**bitwidth)], 0, 2**bitwidth - 1
         )
-        number2 = PInt(
+        number2 = construct_pint(
             [1 / 2**bitwidth - 1 for _ in range(2**bitwidth)], 0, 2**bitwidth - 1
         )
 

@@ -3,7 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from plia import PInt, ifthenelse, log_expectation
+from plia import construct_pint, ifthenelse, log_expectation
 
 
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
@@ -16,7 +16,7 @@ def luhn(identifier):
 
 
 def luhn_checksum(identifier):
-    check = PInt(tf.convert_to_tensor([0]), lower=0)
+    check = construct_pint(tf.convert_to_tensor([0]), lower=0)
 
     for i, digit in enumerate(identifier):
         if i % 2 == len(identifier) % 2:

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from plia.pint import PInt
+from plia import construct_pint
 
 
 class SumClassifier(tf.keras.Model):
@@ -31,7 +31,7 @@ class SumClassifier(tf.keras.Model):
             x[i * self.batch_size : (i + 1) * self.batch_size, :]
             for i in range(2 * self.N)
         ]
-        c = [PInt(x[i], 0, 9, log_space=False) for i in range(2 * self.N)]
+        c = [construct_pint(x[i], 0, 9, log_space=False) for i in range(2 * self.N)]
         return self.addition_model(c)
 
 
