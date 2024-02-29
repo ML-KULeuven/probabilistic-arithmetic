@@ -10,7 +10,7 @@ def log_expectation(x):
     if isinstance(x, bool) and x == False:
         return -np.inf
     elif isinstance(x, PInt):
-        values = tf.math.log(tf.range(x.lower, x.upper + 1) + EPSILON)
+        values = tf.math.log(tf.range(x.lower, x.upper + 1, dtype=tf.float32) + EPSILON)
         E = values + x.logits
         return tf.reduce_logsumexp(E, axis=-1)
     elif isinstance(x, PIverson):

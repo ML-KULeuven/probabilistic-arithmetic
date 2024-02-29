@@ -14,7 +14,6 @@ class Trainer:
         loss_object,
         train_dataset,
         val_dataset,
-        test_dataset,
         epochs=10,
         log_its=100,
     ):
@@ -23,7 +22,6 @@ class Trainer:
         self.loss_object = loss_object
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
-        self.test_dataset = test_dataset
         self.epochs = epochs
         self.log_its = log_its
 

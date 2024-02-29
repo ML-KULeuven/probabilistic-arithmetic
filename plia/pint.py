@@ -35,7 +35,7 @@ class PInt(PArray):
     def __add__(self, other):
         if isinstance(other, PInt):
             logits, lower = addPIntPInt(self, other)
-            return PInt(logits, lower=lower, normalize=False)
+            return PInt(logits, lower=lower)
         elif isinstance(other, int):
             return PInt(self.logits, lower=self.lower + other)
         else:
@@ -53,7 +53,7 @@ class PInt(PArray):
     def __mul__(self, other: int):
         if isinstance(other, int):
             logits, lower = mulitplyPIntInt(self, other)
-            return PInt(logits, lower, normalize=False)
+            return PInt(logits, lower)
         else:
             raise NotImplementedError()
 

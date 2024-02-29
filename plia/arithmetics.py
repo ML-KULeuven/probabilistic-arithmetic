@@ -37,17 +37,17 @@ def log_convolution(p1, p1_padding, p2, p2_padding, signal_length):
     logp = tf.math.log(p + EPSILON)
     logp = tf.cast(logp, dtype=tf.float32)
     return logp + a1 + a2
-    # return logp - tf.math.reduce_logsumexp(logp, axis=-1, keepdims=True)
 
 
 def addPIntPInt(x1, x2):
-    domain = x1.domain + x2.domain
-    cardinality = domain.max - domain.min + 1
+    lower = x1.lower + x2.lower
+    upper = x1.upper + x2.upper
+    cardinality = upper - lower + 1
 
     padding = [[0, 0] for _ in range(len(x1.logits.shape) - 1)]
 
-    x1_padding = max(0, cardinality - x1.cardinality)
-    x2_padding = max(0, cardinality - x2.cardinality)
+    x1_padding = tf.maximum(0, cardinality - x1.cardinality)
+    x2_padding = tf.maximum(0, cardinality - x2.cardinality)
 
     x1_padding = padding + [[0, x1_padding]]
     x2_padding = padding + [[0, x2_padding]]
@@ -60,21 +60,7 @@ def addPIntPInt(x1, x2):
         cardinality,
     )
 
-    return p, domain
-
-
-# def addC2C(x1, x2):
-#     domain = x1.domain + x2.domain
-#     n = domain.max - domain.min + 1
-
-#     fft1 = tf.signal.rfft(tf.cast(x1.logits, dtype=tf.float64), [n])
-#     fft2 = tf.signal.rfft(tf.cast(x2.logits, dtype=tf.float64), [n])
-#     fft = fft1 * fft2
-#     probs = tf.signal.irfft(fft, [n])
-#     probs /= tf.reduce_sum(probs)
-#     probs = tf.cast(probs, dtype=tf.float32)
-
-#     return tf.math.log(probs + EPSILON), domain
+    return p, lower
 
 
 def mulitplyPIntInt(x1, x2):
@@ -88,5 +74,5 @@ def mulitplyPIntInt(x1, x2):
         padding="VALID",
     )
     logits = tf.where(logits == 0, -np.inf, logits)
-    logits = logits[:, :, 0]
+    logits = logits[:, : -(x2 - 1), 0]
     return logits, x1.lower * x2
