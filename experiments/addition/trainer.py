@@ -7,7 +7,17 @@ from evaluate import sum_accuracy
 
 class Trainer:
 
-    def __init__(self, model, optimizer, loss_object, train_dataset, val_dataset, test_dataset, epochs=10, log_its=100):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        loss_object,
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        epochs=10,
+        log_its=100,
+    ):
         self.model = model
         self.optimizer = optimizer
         self.loss_object = loss_object
@@ -21,11 +31,11 @@ class Trainer:
     def train_step(self, images, label):
         with tf.GradientTape() as tape:
             predictions = self.model(images)
-            loss = self.loss_object(label, predictions.logprobs)
+            loss = self.loss_object(label, predictions.logits)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss
-    
+
     def train(self):
         avg_loss = tf.keras.metrics.Mean()
         duration = tf.keras.metrics.Sum()
@@ -40,11 +50,16 @@ class Trainer:
                 duration.update_state(time.time() - start_time)
                 if count % self.log_its == 0:
                     acc = sum_accuracy(self.model, self.val_dataset)
-                    print(f'Epoch {epoch + 1}   Iteration: {count}   Loss: {avg_loss.result().numpy()}  Accuracy: {acc.numpy()}  Time(s): {duration.result().numpy()}')
-                    wandb.log({
-                        'loss': avg_loss.result().numpy(), 
-                        'accuracy': acc.numpy(), 
-                        'time': duration.result().numpy()})
+                    print(
+                        f"Epoch {epoch + 1}   Iteration: {count}   Loss: {avg_loss.result().numpy()}  Accuracy: {acc.numpy()}  Time(s): {duration.result().numpy()}"
+                    )
+                    wandb.log(
+                        {
+                            "loss": avg_loss.result().numpy(),
+                            "accuracy": acc.numpy(),
+                            "time": duration.result().numpy(),
+                        }
+                    )
                     avg_loss.reset_states()
                     duration.reset_states()
                 count += 1

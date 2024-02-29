@@ -1,33 +1,34 @@
 import os
-import functools
 
 import numpy as np
 import tensorflow as tf
 
-from plia import PInt, ifthenelse
+from plia import PInt, ifthenelse, log_expectation
 
 
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
-def tbranch(check, x):
-    return check + 2 * x
+def luhn(identifier):
+    check_digit = identifier[0]
+    check_value = luhn_checksum(identifier[1:])
+    return log_expectation(check_digit - check_value == 10)
 
 
-def fbranch(check, x):
-    return tbranch(check, x) - 9
-
-
-def checksum(identifier):
-    check = PInt(tf.convert_to_tensor([-np.inf]), lower=0)
+def luhn_checksum(identifier):
+    check = PInt(tf.convert_to_tensor([0]), lower=0)
 
     for i, digit in enumerate(identifier):
         if i % 2 == len(identifier) % 2:
-            tb = functools.partial(tbranch, check=check)
-            fb = functools.partial(fbranch, check=check)
-
-            check = ifthenelse(digit, lt=5, tbranch=tb, fbranch=fb)
+            check = ifthenelse(
+                digit,
+                lt=5,
+                tbranch=lambda x: 2 * x,
+                fbranch=lambda x: 2 * x - 9,
+                accumulate=check,
+            )
         else:
             check = check + digit
+        check = check % 10
 
     return check

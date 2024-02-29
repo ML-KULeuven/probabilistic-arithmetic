@@ -11,13 +11,15 @@ def log_expectation(x):
         return -np.inf
     elif isinstance(x, PInt):
         values = tf.math.log(tf.range(x.lower, x.upper + 1) + EPSILON)
-        E = values + x.logprobs
+        E = values + x.logits
         return tf.reduce_logsumexp(E, axis=-1)
     elif isinstance(x, PIverson):
-        E = tf.reduce_logsumexp(x.logprobs, axis=-1)
+        E = tf.reduce_logsumexp(x.logits, axis=-1)
         if x.negated:
             E = log1mexp(E)
         return E
+    else:
+        raise NotImplementedError()
 
 
 def log1mexp(x):
@@ -35,26 +37,18 @@ def log1mexp(x):
     )
 
 
-def ifthenelse(variable, lt, tbranch, fbranch):
+def ifthenelse(variable, lt, tbranch, fbranch, accmulate):
     if variable.lower < lt and variable.upper >= lt:
-        logprob_true = log_expectation(variable < lt)
-        logprob_false = log1mexp(logprob_true)
-
         tvar = PInt(variable[..., : lt - variable.lower], variable.lower)
         fvar = PInt(variable[..., lt - variable.lower :], lt)
 
-        tvar = logprob_true + tbranch(tvar).logits
-        fvar = logprob_false + fbranch(fvar).logits
-
-        # TODO align domains using padding
-        exit()
-
-        logits = tf.math.logaddexp(tvar, fvar)
-
-        # TODO figure out lower
-        exit()
-
-        return PInt(logits, lower)
-
+        tvar = tbranch(tvar)
+        fvar = fbranch(fvar)
+        return accmulate + tvar + fvar
+    # TODO double check inequalities
+    elif variable.lower >= lt:
+        return accmulate + tbranch(variable)
+    elif variable.upper < lt:
+        return accmulate + fbranch(variable)
     else:
         raise NotImplementedError()

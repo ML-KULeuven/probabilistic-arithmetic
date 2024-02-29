@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import Union, List
-from plia.arithmetics import addPIntPInt, mulitplyPIntInt, ltz, eqz
+from plia.arithmetics import addPIntPInt, mulitplyPIntInt
 
 
 class PArray:
@@ -22,17 +22,15 @@ class PArray:
         return f"{self.__class__.__name__}(lower:{self.lower}, upper:{self.upper})"
 
 
+def construct_pint(logits, lower):
+    pint = PInt(logits, lower)
+    pint.logits = tf.nn.log_softmax(pint.logits, axis=-1)
+    return pint
+
+
 class PInt(PArray):
     def __init__(self, logits, lower):
         super().__init__(logits, lower)
-
-    @property
-    def logprobs(self):
-        return tf.nn.log_softmax(self.logits, axis=-1)
-
-    @property
-    def probs(self):
-        return tf.exp(tf.cast(self.logprobs, tf.float64))
 
     def __add__(self, other):
         if isinstance(other, PInt):
@@ -68,6 +66,7 @@ class PInt(PArray):
     def __rmul__(self, other: int):
         return self * other
 
+    # TODO double check inequalities
     def __lt__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
             x = self - other
@@ -113,7 +112,7 @@ class PInt(PArray):
 
     def __ne__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
-            return ~(self == other)
+            return -(self == other)
         else:
             raise NotImplementedError()
 
@@ -124,5 +123,5 @@ class PIverson(PArray):
         super().__init__(logits, lower)
         self.negated = False
 
-    def __ne__(self, pint):
-        return PIverson(pint.logits, print.lower, negated=True)
+    def __neg__(self, x):
+        return PIverson(x.logits, x.lower, negated=True)
