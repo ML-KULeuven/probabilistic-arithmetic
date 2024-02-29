@@ -7,7 +7,7 @@ def sum_accuracy(model, data):
     for batch in data:
         n1, n2, target = batch[:3]
         prediction = model([n1, n2])
-        prediction = tf.argmax(prediction.logprobs, axis=-1)
+        prediction = tf.argmax(prediction.logits, axis=-1)
         correct += tf.reduce_sum(tf.cast(prediction == target, tf.int32))
         total += tf.size(target)
     return correct / total
