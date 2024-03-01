@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import Union, List
-from plia.arithmetics import addPIntPInt, mulitplyPIntInt
+from plia.arithmetics import addPIntPInt, mulitplyPIntInt, EPSILON
 
 
 class PArray:
@@ -22,7 +22,9 @@ class PArray:
         return f"{self.__class__.__name__}(lower:{self.lower}, upper:{self.upper})"
 
 
-def construct_pint(logits, lower):
+def construct_pint(logits, lower, log_input=True):
+    if not log_input:
+        logits = tf.math.log(logits + EPSILON)
     pint = PInt(logits, lower)
     pint.logits = tf.nn.log_softmax(pint.logits, axis=-1)
     return pint
