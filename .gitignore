@@ -7,4 +7,4 @@ __pycache__
 wandb/
 experiments/addition/data/data_6_test_batch10_prob.pkl
 experiments/addition/data/data_6_train_batch10_prob.pkl
-experiments/comparison/results/
+experiments/expectation/results/
