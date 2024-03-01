@@ -2,8 +2,6 @@ import time
 import wandb
 import tensorflow as tf
 
-from evaluate import sum_accuracy
-
 
 class Trainer:
 
@@ -14,6 +12,7 @@ class Trainer:
         loss_object,
         train_dataset,
         val_dataset,
+        val_fn,
         epochs=10,
         log_its=100,
     ):
@@ -47,7 +46,7 @@ class Trainer:
                 avg_loss.update_state(loss)
                 duration.update_state(time.time() - start_time)
                 if count % self.log_its == 0:
-                    acc = sum_accuracy(self.model, self.val_dataset)
+                    acc = self.val_fn(self.model, self.val_dataset)
                     print(
                         f"Epoch {epoch + 1}   Iteration: {count}   Loss: {avg_loss.result().numpy()}  Accuracy: {acc.numpy()}  Time(s): {duration.result().numpy()}"
                     )

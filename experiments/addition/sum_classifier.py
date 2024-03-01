@@ -10,16 +10,7 @@ class SumClassifier(tf.keras.Model):
         self.N = N
         self.batch_size = batch_size
 
-        self.neural_model = tf.keras.Sequential()
-        self.neural_model.add(tf.keras.layers.Conv2D(6, 5, activation="relu"))
-        self.neural_model.add(tf.keras.layers.MaxPooling2D())
-        self.neural_model.add(tf.keras.layers.Conv2D(16, 5, activation="relu"))
-        self.neural_model.add(tf.keras.layers.MaxPooling2D())
-        self.neural_model.add(tf.keras.layers.Flatten())
-        self.neural_model.add(tf.keras.layers.Dense(120, activation="relu"))
-        self.neural_model.add(tf.keras.layers.Dense(84, activation="relu"))
-        self.neural_model.add(tf.keras.layers.Dense(10))
-
+        self.neural_model = DigitClassifier(batch_size)
         self.addition_model = MultiAddition(N)
 
     def call(self, inputs, training=None, mask=None):
@@ -33,6 +24,27 @@ class SumClassifier(tf.keras.Model):
         ]
         c = [construct_pint(x[i], 0) for i in range(2 * self.N)]
         return self.addition_model(c)
+
+
+class DigitClassifier(tf.keras.Model):
+
+    def __init__(self, batch_size=10):
+        super(DigitClassifier, self).__init__()
+        self.batch_size = batch_size
+
+        self.model = tf.keras.Sequential()
+        self.model.add(tf.keras.layers.Conv2D(6, 5, activation="relu"))
+        self.model.add(tf.keras.layers.MaxPooling2D())
+        self.model.add(tf.keras.layers.Conv2D(16, 5, activation="relu"))
+        self.model.add(tf.keras.layers.MaxPooling2D())
+        self.model.add(tf.keras.layers.Flatten())
+        self.model.add(tf.keras.layers.Dense(120, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(84, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(10))
+
+    def call(self, inputs, training=None, mask=None):
+        x = self.model(x)
+        return x
 
 
 class MultiAddition(tf.keras.Model):
