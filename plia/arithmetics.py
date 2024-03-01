@@ -1,7 +1,6 @@
-import math
 import tensorflow as tf
 import numpy as np
-
+import einops as E
 
 EPSILON = tf.keras.backend.epsilon()
 
@@ -63,16 +62,14 @@ def addPIntPInt(x1, x2):
     return p, lower
 
 
-def mulitplyPIntInt(x1, x2):
-    logits = tf.reshape(x1.logits, [-1, x1.logits.shape[-1], 1])
-    output_shape = [logits.shape[0], x2 * logits.shape[1], 1]
-    logits = tf.nn.conv1d_transpose(
-        tf.cast(logits, dtype=tf.float32),
-        tf.ones([1, 1, 1]),
-        output_shape,
-        strides=x2,
-        padding="VALID",
-    )
-    logits = tf.where(logits == 0, -np.inf, logits)
-    logits = logits[:, : -(x2 - 1), 0]
-    return logits, x1.lower * x2
+def mulitplyPIntInt(x, c):
+    logits = x.logits
+    logits = E.rearrange(logits, "... card -> ... card 1")
+
+    fillers = tf.ones_like(logits)
+    fillers = E.repeat(fillers, "... card 1 -> ... card c", c=c - 1) * (-np.inf)
+
+    logits = tf.concat([logits, fillers], axis=-1)
+    logits = E.rearrange(logits, "... card c -> ... (card c)")[: -c + 1]
+
+    return logits, x.lower * c
