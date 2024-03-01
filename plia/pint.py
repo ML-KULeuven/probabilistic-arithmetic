@@ -1,8 +1,13 @@
 import numpy as np
 import tensorflow as tf
 
-from typing import Union, List
-from plia.arithmetics import addPIntPInt, mulitplyPIntInt, EPSILON
+from plia.arithmetics import (
+    EPSILON,
+    addPIntPInt,
+    mulitplyPIntInt,
+    floordividePIntInt,
+    modPIntInt,
+)
 
 
 class PArray:
@@ -55,6 +60,20 @@ class PInt(PArray):
     def __mul__(self, other: int):
         if isinstance(other, int):
             logits, lower = mulitplyPIntInt(self, other)
+            return PInt(logits, lower)
+        else:
+            raise NotImplementedError()
+
+    def __floordiv__(self, other):
+        if isinstance(other, int):
+            logits, lower = floordividePIntInt(self, other)
+            return PInt(logits, lower)
+        else:
+            raise NotImplementedError()
+
+    def __mod__(self, other):
+        if isinstance(other, int):
+            logits, lower = modPIntInt(self, other)
             return PInt(logits, lower)
         else:
             raise NotImplementedError()

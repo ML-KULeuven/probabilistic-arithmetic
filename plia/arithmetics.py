@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import math
 import einops as E
 
 EPSILON = tf.keras.backend.epsilon()
@@ -73,3 +74,31 @@ def mulitplyPIntInt(x, c):
     logits = E.rearrange(logits, "... card c -> ... (card c)")[: -c + 1]
 
     return logits, x.lower * c
+
+
+def integer_fill_logits(x, c):
+    logits = x.logits
+    lower = x.lower
+    upper = x.upper
+
+    lower_filler = (x.lower // c) * c
+    upper_filler = ((x.upper + c) // c) * c - 1
+
+    lower_filler = tf.ones(logits.shape[:-1] + (lower - lower_filler)) * (-np.inf)
+    upper_filler = tf.ones(logits.shape[:-1] + (upper_filler - upper)) * (-np.inf)
+
+    return tf.concat([lower_filler, logits, upper_filler], axis=-1)
+
+
+def floordividePIntInt(x, c):
+    logits = integer_fill_logits(x, c)
+    logits = E.rearrange(logits, "... (card c) -> ... card c", c=c)
+    logits = tf.reduce_logsumexp(logits, axis=-1)
+    return logits, x.lower // c
+
+
+def modPIntInt(x, c):
+    logits = integer_fill_logits(x, c)
+    logits = E.rearrange(logits, "... (card c) -> ... card c", c=c)
+    logits = tf.reduce_logsumexp(logits, axis=-2)
+    return logits, 0

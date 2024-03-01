@@ -10,13 +10,13 @@ from plia import construct_pint
 
 
 def main():
-    logits = tf.random.uniform((10,))
-    x = construct_pint(logits, 0)
+    logits = tf.random.uniform((18,))
+    x = construct_pint(logits, -1)
     const = 4
 
-    product = x * const
+    mod = x // const
 
-    print(product)
+    print(mod)
 
 
 if __name__ == "__main__":
