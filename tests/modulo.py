@@ -16,7 +16,8 @@ def main():
 
     mod = x % const
 
-    print(mod)
+    print(logits)
+    print(tf.exp(mod.logits))
 
 
 if __name__ == "__main__":

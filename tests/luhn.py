@@ -12,11 +12,11 @@ os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 def luhn(identifier):
     check_digit = identifier[0]
     check_value = luhn_checksum(identifier[1:])
-    return log_expectation(check_digit - check_value == 10)
+    return log_expectation(check_digit + check_value == 10)
 
 
 def luhn_checksum(identifier):
-    check = construct_pint(tf.convert_to_tensor([0]), lower=0)
+    check = construct_pint(tf.convert_to_tensor([0.0]), lower=0)
 
     for i, digit in enumerate(identifier):
         if i % 2 == len(identifier) % 2:
@@ -30,5 +30,13 @@ def luhn_checksum(identifier):
         else:
             check = check + digit
         check = check % 10
-
     return check
+
+
+if __name__ == "__main__":
+    length = 10
+    identifier = [
+        construct_pint(tf.random.uniform((10,)), lower=0) for _ in range(length)
+    ]
+    constraint = luhn(identifier)
+    print(tf.exp(constraint))

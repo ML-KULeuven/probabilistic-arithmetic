@@ -37,18 +37,18 @@ def log1mexp(x):
     )
 
 
-def ifthenelse(variable, lt, tbranch, fbranch, accmulate):
+def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
     if variable.lower < lt and variable.upper >= lt:
-        tvar = PInt(variable[..., : lt - variable.lower], variable.lower)
-        fvar = PInt(variable[..., lt - variable.lower :], lt)
+        tvar = PInt(variable.logits[..., : lt - variable.lower], variable.lower)
+        fvar = PInt(variable.logits[..., lt - variable.lower :], lt)
 
         tvar = tbranch(tvar)
         fvar = fbranch(fvar)
-        return accmulate + tvar + fvar
+        return accumulate + tvar + fvar
     # TODO double check inequalities
     elif variable.lower >= lt:
-        return accmulate + tbranch(variable)
+        return accumulate + tbranch(variable)
     elif variable.upper < lt:
-        return accmulate + fbranch(variable)
+        return accumulate + fbranch(variable)
     else:
         raise NotImplementedError()

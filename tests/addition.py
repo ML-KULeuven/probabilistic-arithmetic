@@ -7,7 +7,7 @@ os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
 sys.path.append("..")
-from plia import construct_pint
+from plia import construct_pint, log_expectation
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
     sum = number1 + number2
 
     print(sum)
-    # print(tf.exp(log_expectation(sum)))
+    print(tf.exp(log_expectation(sum)))
 
 
 if __name__ == "__main__":

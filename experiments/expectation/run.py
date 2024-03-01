@@ -95,7 +95,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     problems = ["sum", "le", "eq"]
-    max_bitwidth = 20
+    max_bitwidth = 24
 
     for p in problems:
         if GPUS and args.device == "gpu":
