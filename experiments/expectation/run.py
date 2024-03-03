@@ -5,7 +5,8 @@ import argparse
 from pathlib import Path
 import yaml
 
-sys.path.append("../..")
+PARENT_DIR = Path(__file__).resolve().parent
+sys.path.append(str(PARENT_DIR / "../.."))
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
@@ -38,12 +39,7 @@ str2func = {
 
 
 def make_path(device, problem):
-    path = (
-        Path(__file__).resolve().parent
-        / Path("results")
-        / Path(f"{device}")
-        / Path(f"{problem}")
-    )
+    path = PARENT_DIR / Path("results") / Path(f"{device}") / Path(f"{problem}")
 
     if not os.path.exists(path):
         os.makedirs(path)

@@ -44,6 +44,7 @@ def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
 
         tvar = tbranch(tvar)
         fvar = fbranch(fvar)
+
         return accumulate + tvar + fvar
     # TODO double check inequalities
     elif variable.lower >= lt:

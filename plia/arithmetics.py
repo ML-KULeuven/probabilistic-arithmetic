@@ -6,7 +6,14 @@ import einops as E
 EPSILON = tf.keras.backend.epsilon()
 
 
-def log_convolution(p1, p1_padding, p2, p2_padding, signal_length):
+def pad(p, signal_length):
+    padding = [[0, 0] for _ in range(len(p.shape) - 1)]
+    p_padding = signal_length - p.shape[-1]
+    p_padding = tf.maximum(0, padding + [[0, p_padding]])
+    return tf.pad(p, p_padding, mode="CONSTANT", constant_values=0.0)
+
+
+def log_convolution(p1, p2, signal_length):
     a1 = tf.math.reduce_max(p1, axis=-1, keepdims=True)
     a2 = tf.math.reduce_max(p2, axis=-1, keepdims=True)
 
@@ -17,8 +24,8 @@ def log_convolution(p1, p1_padding, p2, p2_padding, signal_length):
     p1 = tf.math.exp(p1)
     p2 = tf.math.exp(p2)
 
-    p1 = tf.pad(p1, p1_padding, mode="CONSTANT", constant_values=0.0)
-    p2 = tf.pad(p2, p2_padding, mode="CONSTANT", constant_values=0.0)
+    p1 = pad(p1, signal_length)
+    p2 = pad(p2, signal_length)
 
     """ 
     Currently convolutions in tensorflow are limited in size they can deal with. From blogposts it seems that a newer version of cudnn (8.0) can solve it for some gpus. On CPU everything is fine. 
@@ -43,23 +50,7 @@ def addPIntPInt(x1, x2):
     lower = x1.lower + x2.lower
     upper = x1.upper + x2.upper
     cardinality = upper - lower + 1
-
-    padding = [[0, 0] for _ in range(len(x1.logits.shape) - 1)]
-
-    x1_padding = tf.maximum(0, cardinality - x1.cardinality)
-    x2_padding = tf.maximum(0, cardinality - x2.cardinality)
-
-    x1_padding = padding + [[0, x1_padding]]
-    x2_padding = padding + [[0, x2_padding]]
-
-    p = log_convolution(
-        x1.logits,
-        x1_padding,
-        x2.logits,
-        x2_padding,
-        cardinality,
-    )
-
+    p = log_convolution(x1.logits, x2.logits, cardinality)
     return p, lower
 
 
@@ -71,7 +62,7 @@ def mulitplyPIntInt(x, c):
     fillers = E.repeat(fillers, "... card 1 -> ... card c", c=c - 1) * (-np.inf)
 
     logits = tf.concat([logits, fillers], axis=-1)
-    logits = E.rearrange(logits, "... card c -> ... (card c)")[: -c + 1]
+    logits = E.rearrange(logits, "... card c -> ... (card c)")[..., : -c + 1]
 
     return logits, x.lower * c
 
