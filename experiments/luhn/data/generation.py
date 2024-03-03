@@ -80,6 +80,8 @@ def create_loader(batch_size, id_length):
         val_data = create_identifier(id_length, x_val, y_val)
         test_data = create_identifier(id_length, x_test, y_test)
 
+        if not os.path.exists(PARENT_DIR / "data"):
+            os.makedirs(PARENT_DIR / "data")
         pickle.dump(train_data, open(train_data_file, "wb+"))
         pickle.dump(val_data, open(val_data_file, "wb+"))
         pickle.dump(test_data, open(test_data_file, "wb+"))
