@@ -103,22 +103,22 @@ class PInt(PArray):
         return -self < -other
 
     def __le__(self, other):
-        self < other + 1
+        return self < other + 1
 
     def __rle__(self, other):
-        -self < -other + 1
+        return -self < -other + 1
 
     def __gt__(self, other):
-        -self < -other
+        return -self < -other
 
     def __rgt__(self, other):
-        self < other
+        return self < other
 
     def __ge__(self, other):
-        -self < -other + 1
+        return -self < -other + 1
 
     def __rge__(self, other):
-        self < other + 1
+        return self < other + 1
 
     def __eq__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):

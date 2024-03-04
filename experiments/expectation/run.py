@@ -14,7 +14,9 @@ import tensorflow as tf
 
 GPUS = tf.config.experimental.list_physical_devices("GPU")
 
-from plia import construct_pint, log_expectation
+from plia import construct_pint, log_expectation, ifthenelse
+
+PROBLEMS = ["sum", "le", "eq", "luhn"]
 
 
 class Timer:
@@ -31,10 +33,35 @@ class Timer:
         print("%s: %.4fs (bitwidth: %i)" % ("time", t, self.bitwidth))
 
 
+def luhn(*identifier):
+    check_digit = identifier[0]
+    check_value = luhn_checksum(identifier[1:])
+    return check_digit + check_value == 10
+
+
+def luhn_checksum(identifier):
+    check = construct_pint(tf.convert_to_tensor([0.0]), lower=0)
+
+    for i, digit in enumerate(identifier):
+        if i % 2 == len(identifier) % 2:
+            check = ifthenelse(
+                digit,
+                lt=5,
+                tbranch=lambda x: 2 * x,
+                fbranch=lambda x: 2 * x - 9,
+                accumulate=check,
+            )
+        else:
+            check = check + digit
+        check = check % 10
+    return check
+
+
 str2func = {
-    "sum": lambda x, y: x + y,
-    "le": lambda x, y: x < y,
-    "eq": lambda x, y: x == y,
+    "sum": lambda *args: args[0] + args[1],
+    "le": lambda *args: args[0] <= args[1],
+    "eq": lambda *args: args[0] == args[1],
+    "luhn": lambda *args: luhn(*args),
 }
 
 
@@ -46,7 +73,7 @@ def make_path(device, problem):
     return path
 
 
-def run_comparison(device, problem, max_bitwidth):
+def run_expecation(problem, max_bitwidth, device):
     """Start with a dry run to not time TF backend initialisation cost"""
     bitwidth = 1
     number1 = construct_pint(tf.random.uniform((2**bitwidth,), minval=0, maxval=1), 0)
@@ -58,7 +85,7 @@ def run_comparison(device, problem, max_bitwidth):
     print(f"\ndevice: {device}, problem: {problem}")
 
     times = []
-    for bitwidth in range(max_bitwidth):
+    for bitwidth in range(1, max_bitwidth):
 
         """
         Watch out in this experiment! Tensorflow compiles and caches some operations in the background!
@@ -69,16 +96,19 @@ def run_comparison(device, problem, max_bitwidth):
         Additional info: bitwidth of 24 uses +- 15GB of VRAM and seems to be max for GPU
         """
 
-        number1 = construct_pint(tf.random.uniform((2**bitwidth,)), 0)
-        number2 = construct_pint(tf.random.uniform((2**bitwidth,)), 0)
-
-        if problem in str2func.keys():
-            with Timer(times, bitwidth):
-                result = str2func[problem](number1, number2)
-                result = log_expectation(result)
-                tf.test.experimental.sync_devices()
+        if problem == "luhn":
+            fargs = [
+                construct_pint(tf.random.uniform((10,)), 0) for _ in range(bitwidth)
+            ]
         else:
-            raise ValueError(f"Unknown problem: {problem}")
+            number1 = construct_pint(tf.random.uniform((2**bitwidth,)), 0)
+            number2 = construct_pint(tf.random.uniform((2**bitwidth,)), 0)
+            fargs = (number1, number2)
+
+        with Timer(times, bitwidth):
+            result = str2func[problem](*fargs)
+            result = log_expectation(result)
+            tf.test.experimental.sync_devices()
 
     with open(make_path(device, problem) / "times.yaml", "w+") as f:
         yaml.dump(times, f, default_flow_style=False)
@@ -87,15 +117,13 @@ def run_comparison(device, problem, max_bitwidth):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", default="cpu", choices=["cpu", "gpu"])
+    parser.add_argument("--max_bitwidth", default=24, type=int)
 
     args = parser.parse_args()
 
-    problems = ["sum", "le", "eq"]
-    max_bitwidth = 24
-
-    for p in problems:
+    for p in PROBLEMS:
         if GPUS and args.device == "gpu":
             tf.config.experimental.set_visible_devices(GPUS[0], "GPU")
         else:
             tf.config.experimental.set_visible_devices([], "GPU")
-        run_comparison(args.device, p, max_bitwidth)
+        run_expecation(p, args.max_bitwidth, args.device)
