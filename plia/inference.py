@@ -39,10 +39,8 @@ def log1mexp(x):
 
 def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
     if variable.lower < lt and variable.upper >= lt:
-        tvar = construct_pint(
-            variable.logits[..., : lt - variable.lower], variable.lower
-        )
-        fvar = construct_pint(variable.logits[..., lt - variable.lower :], lt)
+        tvar = PInt(variable.logits[..., : lt - variable.lower], variable.lower)
+        fvar = PInt(variable.logits[..., lt - variable.lower :], lt)
 
         tvar = tbranch(tvar)
         fvar = fbranch(fvar)

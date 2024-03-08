@@ -62,7 +62,7 @@ def log_disjoint_sum(logits1, logits2):
     disjoint_p = p1 + p2 - p1 * p2
     logits = tf.math.log(disjoint_p + EPSILON)
     logits = tf.cast(logits, dtype=tf.float32)
-    return logits - tf.math.reduce_logsumexp(logits, axis=-1, keepdims=True)
+    return logits
 
 
 def addPIntPInt(x1, x2):
