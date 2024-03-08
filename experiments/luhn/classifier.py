@@ -8,7 +8,6 @@ class LuhnClassifier(tf.keras.Model):
 
     def __init__(self):
         super(LuhnClassifier, self).__init__()
-
         self.classifier = DigitClassifier()
 
     def call(self, inputs, training=None, mask=None):
@@ -21,6 +20,8 @@ class LuhnClassifier(tf.keras.Model):
 
         check_digit = identifier[0]
         check_value = self.luhn_checksum(identifier[1:])
+        """ Do we want to return a PIverson? """
+        # return check_digit + check_value == 10
         return log_expectation(check_digit + check_value == 10)
 
     def luhn_checksum(self, identifier):
@@ -37,14 +38,23 @@ class LuhnClassifier(tf.keras.Model):
                     fbranch=lambda x: 2 * x - 9,
                     accumulate=check,
                 )
-
             else:
                 check = check + digit
             check = check % 10
         return check
 
 
+class LuhnCheckClassifier(LuhnClassifier):
+
+    def call(self, inputs, training=None, mask=None):
+        x = self.classifier(inputs)
+        x = [construct_pint(x[:, i, :], 0) for i in range(x.shape[1])]
+        x = self.luhn_checksum(x)
+        return x
+
+
 class DigitClassifier(tf.keras.Model):
+
     def __init__(self):
         super(DigitClassifier, self).__init__()
 

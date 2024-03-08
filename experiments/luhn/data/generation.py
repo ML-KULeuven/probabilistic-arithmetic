@@ -12,7 +12,7 @@ TRAINVAL_SIZE = 60000
 VAL_SIZE = int(TRAINVAL_SIZE * VAL_FRACTION)
 
 
-def luhn_checlsum(identifier):
+def luhn_checksum(identifier):
     check = 0
     for i in range(identifier.shape[0]):
         digit = identifier[i]
@@ -28,7 +28,7 @@ def luhn_checlsum(identifier):
 
 def check_identifier(identifier):
     check_digit = identifier[0]
-    check_value = luhn_checlsum(identifier[1:])
+    check_value = luhn_checksum(identifier[1:])
     return check_digit + check_value == 10
 
 
@@ -47,7 +47,8 @@ def create_identifier(id_length, x, y):
     for i in range(N_ids):
         identifer = x[i : i + id_length, ...]
         label = y[i : i + id_length]
-        label = check_identifier(label)
+        # label = check_identifier(label)
+        label = luhn_checksum(label)
 
         identifers.append(identifer)
         labels.append(label)
@@ -55,7 +56,7 @@ def create_identifier(id_length, x, y):
     return identifers, labels
 
 
-def create_loader(batch_size, id_length):
+def create_loader(batch_size, id_length, balanced=False):
 
     train_data_file = PARENT_DIR / "data" / f"{id_length}_train.pkl"
     val_data_file = PARENT_DIR / "data" / f"{id_length}_val.pkl"

@@ -13,7 +13,7 @@ from plia import construct_pint, log_expectation
 def main():
     DIGITS = 2
 
-    probs = np.ones([10, 10]) * 0.1
+    probs = np.ones([10, 10])
     probs[:, 0] = 0.99
     probs[:, 1:] = 0.01 / 9
     probs = tf.constant(probs, dtype=tf.float32)

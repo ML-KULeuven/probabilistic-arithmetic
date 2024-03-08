@@ -2,7 +2,7 @@ import math
 import numpy as np
 import tensorflow as tf
 
-from .pint import PInt, PIverson
+from .pint import PInt, PIverson, construct_pint
 from .arithmetics import EPSILON
 
 
@@ -39,13 +39,15 @@ def log1mexp(x):
 
 def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
     if variable.lower < lt and variable.upper >= lt:
-        tvar = PInt(variable.logits[..., : lt - variable.lower], variable.lower)
-        fvar = PInt(variable.logits[..., lt - variable.lower :], lt)
+        tvar = construct_pint(
+            variable.logits[..., : lt - variable.lower], variable.lower
+        )
+        fvar = construct_pint(variable.logits[..., lt - variable.lower :], lt)
 
         tvar = tbranch(tvar)
         fvar = fbranch(fvar)
 
-        return accumulate + tvar + fvar
+        return accumulate + (tvar | fvar)
     # TODO double check inequalities
     elif variable.lower >= lt:
         return accumulate + tbranch(variable)

@@ -29,7 +29,7 @@ class Trainer:
     def train_step(self, images, label):
         with tf.GradientTape() as tape:
             predictions = self.model(images)
-            loss = self.loss_object(label, predictions)
+            loss = self.loss_object(label, predictions.logits)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss

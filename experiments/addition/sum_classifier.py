@@ -1,28 +1,35 @@
 import tensorflow as tf
+import einops as E
 
 from plia import construct_pint
 
 
 class SumClassifier(tf.keras.Model):
 
-    def __init__(self, N, batch_size=10):
+    def __init__(self, D, batch_size=10):
         super(SumClassifier, self).__init__()
-        self.N = N
+        self.D = D
         self.batch_size = batch_size
 
         self.neural_model = DigitClassifier(batch_size)
-        self.addition_model = MultiAddition(N)
+        self.addition_model = MultiAddition(D)
 
     def call(self, inputs, training=None, mask=None):
+        # b, n, d = inputs.shape[0:3]
+        # inputs = E.rearrange(inputs, "b n d ... -> (b n d) ...")
+        # inputs = tf.expand_dims(inputs, axis=-1)
+        # x = self.model(inputs)
+        # x = E.rearrange(x, "(b n d) ... -> b i ...", b=b)
+
         n1, n2 = inputs
         x = tf.concat([n1, n2], axis=1)
-        x = tf.concat([x[:, i, ...] for i in range(2 * self.N)], axis=0)
+        x = tf.concat([x[:, i, ...] for i in range(2 * self.D)], axis=0)
         x = self.neural_model(x)
         x = [
             x[i * self.batch_size : (i + 1) * self.batch_size, :]
-            for i in range(2 * self.N)
+            for i in range(2 * self.D)
         ]
-        c = [construct_pint(x[i], 0) for i in range(2 * self.N)]
+        c = [construct_pint(x[i], 0) for i in range(2 * self.D)]
         return self.addition_model(c)
 
 

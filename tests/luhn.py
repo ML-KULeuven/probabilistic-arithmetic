@@ -1,8 +1,14 @@
 import os
+import sys
+from pathlib import Path
+
+PARENT_DIR = Path(__file__).resolve().parent
+sys.path.append(str(PARENT_DIR / ".."))
 
 import numpy as np
 import tensorflow as tf
 
+from experiments.luhn.data.generation import luhn_checksum as lc
 from plia import construct_pint, ifthenelse, log_expectation
 
 
@@ -34,9 +40,18 @@ def luhn_checksum(identifier):
 
 
 if __name__ == "__main__":
-    length = 10
+    length = 2
+    probs = np.ones([1, 10])
+    probs[:, 3] = 0.99
+    probs[:, 0:3] = 0.01 / 9
+    probs[:, 4:] = 0.01 / 9
+    probs = tf.constant(probs, dtype=tf.float32)
     identifier = [
-        construct_pint(tf.random.uniform((10,)), lower=0) for _ in range(length)
+        construct_pint(probs, lower=0, log_input=False) for _ in range(length)
     ]
-    constraint = luhn(identifier)
-    print(tf.exp(constraint))
+    constraint = luhn_checksum(identifier)
+    true_id = [tf.argmax(x.logits, axis=-1) for x in identifier]
+    print(true_id)
+    check = lc(tf.concat(true_id, axis=-1))
+    print(tf.exp(constraint.logits))
+    print(check)

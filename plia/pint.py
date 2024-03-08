@@ -4,9 +4,10 @@ import tensorflow as tf
 from plia.arithmetics import (
     EPSILON,
     addPIntPInt,
-    mulitplyPIntInt,
+    multiplyPIntInt,
     floordividePIntInt,
     modPIntInt,
+    orPIntPInt,
 )
 
 
@@ -59,7 +60,7 @@ class PInt(PArray):
 
     def __mul__(self, other: int):
         if isinstance(other, int):
-            logits, lower = mulitplyPIntInt(self, other)
+            logits, lower = multiplyPIntInt(self, other)
             return PInt(logits, lower)
         else:
             raise NotImplementedError()
@@ -74,6 +75,14 @@ class PInt(PArray):
     def __mod__(self, other):
         if isinstance(other, int):
             logits, lower = modPIntInt(self, other)
+            return PInt(logits, lower)
+        else:
+            raise NotImplementedError()
+
+    # TODO double check or is normalised
+    def __or__(self, other):
+        if isinstance(other, PInt):
+            logits, lower = orPIntPInt(self, other)
             return PInt(logits, lower)
         else:
             raise NotImplementedError()
@@ -142,7 +151,7 @@ class PIverson(PArray):
 
     def __init__(self, logits, lower, negated=False):
         super().__init__(logits, lower)
-        self.negated = False
+        self.negated = negated
 
     def __neg__(self, x):
         return PIverson(x.logits, x.lower, negated=True)

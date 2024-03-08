@@ -2,33 +2,20 @@ import os
 import sys
 import multiprocessing as mp
 import argparse
-from pathlib import Path
-
 import tensorflow as tf
 import wandb
-
+from pathlib import Path
 
 PARENT_DIR = Path(__file__).resolve().parent
 sys.path.append(str(PARENT_DIR / "../.."))
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-from classifier import LuhnClassifier
+from classifier import LuhnClassifier, LuhnCheckClassifier
 from data.generation import create_loader
 from trainer import Trainer
-
-
-os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
-
-
-def accuracy(model, data):
-    correct = 0
-    total = 0
-    for batch in data:
-        identifier, label = batch
-        prediction = model(identifier)
-        prediction = tf.argmax(prediction.logits, axis=-1)
-        correct += tf.reduce_sum(tf.cast(prediction == label, tf.int32))
-        total += tf.size(label)
-    return correct / total
+from experiments.luhn.weighted_ce import WeightedCE
+from evaluate import weighted_accuracy, accuracy, luhn_accuracy
 
 
 def train(id_length, learning_rate, batch_size, N_epochs, seed):
@@ -44,10 +31,11 @@ def train(id_length, learning_rate, batch_size, N_epochs, seed):
         },
     )
 
-    model = LuhnClassifier()
+    model = LuhnCheckClassifier()
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    # loss_object = WeightedCE(weight=1.0 + tf.math.log(9.0))
+    loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     train_data, val_data, test_data = create_loader(batch_size, id_length)
 
@@ -57,23 +45,23 @@ def train(id_length, learning_rate, batch_size, N_epochs, seed):
         loss_object,
         train_data,
         val_data,
-        accuracy,
+        luhn_accuracy,
         epochs=N_epochs,
     )
     trainer.train()
 
-    test_accuracy = accuracy(model, test_data)
+    test_accuracy = luhn_accuracy(model, test_data)
     wandb.log({"test_accuracy": test_accuracy.numpy()})
     print(f"Test accuracy: {test_accuracy.numpy()}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--id_length", type=int)
+    parser.add_argument("--id_length", default=2, type=int)
     parser.add_argument("--learning_rate", default=1e-3, type=float)
-    parser.add_argument("--batch_size", type=int)
-    parser.add_argument("--N_epochs", type=int)
-    parser.add_argument("--N_runs", type=int)
+    parser.add_argument("--batch_size", default=12, type=int)
+    parser.add_argument("--N_epochs", default=10, type=int)
+    parser.add_argument("--N_runs", default=1, type=int)
 
     args = parser.parse_args()
 

@@ -13,6 +13,12 @@ def pad(p, signal_length):
     return tf.pad(p, p_padding, mode="CONSTANT", constant_values=0.0)
 
 
+def logit_pad(logits, lower_padding, upper_padding):
+    padding = [[0, 0] for _ in range(len(logits.shape) - 1)]
+    padding = tf.maximum(0, padding + [[lower_padding, upper_padding]])
+    return tf.pad(logits, padding, mode="CONSTANT", constant_values=-np.inf)
+
+
 def log_convolution(p1, p2, signal_length):
     a1 = tf.math.reduce_max(p1, axis=-1, keepdims=True)
     a2 = tf.math.reduce_max(p2, axis=-1, keepdims=True)
@@ -46,6 +52,19 @@ def log_convolution(p1, p2, signal_length):
     return logp + a1 + a2
 
 
+def log_disjoint_sum(logits1, logits2):
+    logits1 = tf.cast(logits1, dtype=tf.float64)
+    logits2 = tf.cast(logits2, dtype=tf.float64)
+
+    p1 = tf.math.exp(logits1)
+    p2 = tf.math.exp(logits2)
+
+    disjoint_p = p1 + p2 - p1 * p2
+    logits = tf.math.log(disjoint_p + EPSILON)
+    logits = tf.cast(logits, dtype=tf.float32)
+    return logits - tf.math.reduce_logsumexp(logits, axis=-1, keepdims=True)
+
+
 def addPIntPInt(x1, x2):
     lower = x1.lower + x2.lower
     upper = x1.upper + x2.upper
@@ -54,7 +73,7 @@ def addPIntPInt(x1, x2):
     return p, lower
 
 
-def mulitplyPIntInt(x, c):
+def multiplyPIntInt(x, c):
     logits = x.logits
     logits = E.rearrange(logits, "... card -> ... card 1")
 
@@ -65,6 +84,17 @@ def mulitplyPIntInt(x, c):
     logits = E.rearrange(logits, "... card c -> ... (card c)")[..., : -c + 1]
 
     return logits, x.lower * c
+
+
+def orPIntPInt(x1, x2):
+    lower = min(x1.lower, x2.lower)
+    upper = max(x1.upper, x2.upper)
+
+    logits1 = logit_pad(x1.logits, x1.lower - lower, upper - x1.upper)
+    logits2 = logit_pad(x2.logits, x2.lower - lower, upper - x2.upper)
+
+    logits = log_disjoint_sum(logits1, logits2)
+    return logits, lower
 
 
 def integer_fill_logits(x, c):
