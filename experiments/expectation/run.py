@@ -14,7 +14,7 @@ import tensorflow as tf
 
 GPUS = tf.config.experimental.list_physical_devices("GPU")
 
-from plia import construct_pint, log_expectation, ifthenelse
+from plia import PInt, log_expectation, ifthenelse
 
 PROBLEMS = ["sum", "le", "eq", "luhn"]
 
@@ -40,7 +40,7 @@ def luhn(*identifier):
 
 
 def luhn_checksum(identifier):
-    check = construct_pint(tf.convert_to_tensor([0.0]), lower=0)
+    check = PInt(tf.convert_to_tensor([0.0]), lower=0)
 
     for i, digit in enumerate(identifier):
         if i % 2 == len(identifier) % 2:
@@ -76,8 +76,8 @@ def make_path(device, problem):
 def run_expecation(problem, max_bitwidth, device):
     """Start with a dry run to not time TF backend initialisation cost"""
     bitwidth = 1
-    number1 = construct_pint(tf.random.uniform((2**bitwidth,), minval=0, maxval=1), 0)
-    number2 = construct_pint(tf.random.uniform((2**bitwidth,), minval=0, maxval=1), 0)
+    number1 = PInt(tf.random.uniform((2**bitwidth,), minval=0, maxval=1), 0)
+    number2 = PInt(tf.random.uniform((2**bitwidth,), minval=0, maxval=1), 0)
     number1 + number2
     result = str2func[problem](number1, number2)
     result = log_expectation(result)
@@ -97,12 +97,10 @@ def run_expecation(problem, max_bitwidth, device):
         """
 
         if problem == "luhn":
-            fargs = [
-                construct_pint(tf.random.uniform((10,)), 0) for _ in range(bitwidth)
-            ]
+            fargs = [PInt(tf.random.uniform((10,)), 0) for _ in range(bitwidth)]
         else:
-            number1 = construct_pint(tf.random.uniform((2**bitwidth,)), 0)
-            number2 = construct_pint(tf.random.uniform((2**bitwidth,)), 0)
+            number1 = PInt(tf.random.uniform((2**bitwidth,)), 0)
+            number2 = PInt(tf.random.uniform((2**bitwidth,)), 0)
             fargs = (number1, number2)
 
         with Timer(times, bitwidth):

@@ -1,7 +1,7 @@
 import tensorflow as tf
 import einops as E
 
-from plia import construct_pint
+from plia import PInt
 
 
 class SumClassifier(tf.keras.Model):
@@ -29,7 +29,7 @@ class SumClassifier(tf.keras.Model):
             x[i * self.batch_size : (i + 1) * self.batch_size, :]
             for i in range(2 * self.D)
         ]
-        c = [construct_pint(x[i], 0) for i in range(2 * self.D)]
+        c = [PInt(x[i], 0) for i in range(2 * self.D)]
         return self.addition_model(c)
 
 

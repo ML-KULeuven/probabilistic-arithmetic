@@ -1,17 +1,21 @@
 import os
 import sys
-import numpy as np
 import tensorflow as tf
+from pathlib import Path
+
+ROOT_PATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_PATH))
+
+
+from plia import PInt
+
 
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
-
-sys.path.append("..")
-from plia import construct_pint
 
 
 def main():
     logits = tf.random.uniform((10,))
-    x = construct_pint(logits, 0)
+    x = PInt(logits, 0)
     const = 4
 
     product = x * const

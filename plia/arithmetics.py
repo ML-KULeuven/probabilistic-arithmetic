@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import math
 import einops as E
 
 EPSILON = tf.keras.backend.epsilon()
@@ -52,19 +51,6 @@ def log_convolution(p1, p2, signal_length):
     return logp + a1 + a2
 
 
-def log_disjoint_sum(logits1, logits2):
-    logits1 = tf.cast(logits1, dtype=tf.float64)
-    logits2 = tf.cast(logits2, dtype=tf.float64)
-
-    p1 = tf.math.exp(logits1)
-    p2 = tf.math.exp(logits2)
-
-    disjoint_p = p1 + p2 - p1 * p2
-    logits = tf.math.log(disjoint_p + EPSILON)
-    logits = tf.cast(logits, dtype=tf.float32)
-    return logits
-
-
 def addPIntPInt(x1, x2):
     lower = x1.lower + x2.lower
     upper = x1.upper + x2.upper
@@ -84,17 +70,6 @@ def multiplyPIntInt(x, c):
     logits = E.rearrange(logits, "... card c -> ... (card c)")[..., : -c + 1]
 
     return logits, x.lower * c
-
-
-def orPIntPInt(x1, x2):
-    lower = min(x1.lower, x2.lower)
-    upper = max(x1.upper, x2.upper)
-
-    logits1 = logit_pad(x1.logits, x1.lower - lower, upper - x1.upper)
-    logits2 = logit_pad(x2.logits, x2.lower - lower, upper - x2.upper)
-
-    logits = log_disjoint_sum(logits1, logits2)
-    return logits, lower
 
 
 def integer_fill_logits(x, c):

@@ -1,2 +1,2 @@
-from .pint import construct_pint
+from .pint import PInt, PIverson
 from .inference import ifthenelse, log_expectation

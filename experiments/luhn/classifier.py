@@ -1,7 +1,7 @@
 import tensorflow as tf
 import einops as E
 
-from plia import construct_pint, ifthenelse, log_expectation
+from plia import PInt, ifthenelse, log_expectation
 
 
 class LuhnClassifier(tf.keras.Model):
@@ -16,7 +16,7 @@ class LuhnClassifier(tf.keras.Model):
         return x
 
     def check_identifer(self, x):
-        identifier = [construct_pint(x[:, i, :], 0) for i in range(x.shape[1])]
+        identifier = [PInt(x[:, i, :], 0) for i in range(x.shape[1])]
 
         check_digit = identifier[0]
         check_value = self.luhn_checksum(identifier[1:])
@@ -28,7 +28,7 @@ class LuhnClassifier(tf.keras.Model):
 
         b = identifier[0].logits.shape[0]
 
-        check = construct_pint(tf.constant(0.0, shape=(b, 1)), lower=0)
+        check = PInt(tf.constant(0.0, shape=(b, 1)), lower=0)
         for i, digit in enumerate(identifier):
             if i % 2 == len(identifier) % 2:
                 check = ifthenelse(
@@ -48,7 +48,7 @@ class LuhnCheckClassifier(LuhnClassifier):
 
     def call(self, inputs, training=None, mask=None):
         x = self.classifier(inputs)
-        x = [construct_pint(x[:, i, :], 0) for i in range(x.shape[1])]
+        x = [PInt(x[:, i, :], 0) for i in range(x.shape[1])]
         x = self.luhn_checksum(x)
         return x
 

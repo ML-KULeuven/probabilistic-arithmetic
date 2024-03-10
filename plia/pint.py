@@ -1,13 +1,11 @@
-import numpy as np
 import tensorflow as tf
 
-from plia.arithmetics import (
+from .arithmetics import (
     EPSILON,
     addPIntPInt,
     multiplyPIntInt,
     floordividePIntInt,
     modPIntInt,
-    orPIntPInt,
 )
 
 
@@ -28,16 +26,11 @@ class PArray:
         return f"{self.__class__.__name__}(lower:{self.lower}, upper:{self.upper})"
 
 
-def construct_pint(logits, lower, log_input=True):
-    if not log_input:
-        logits = tf.math.log(logits + EPSILON)
-    pint = PInt(logits, lower)
-    pint.logits = tf.nn.log_softmax(pint.logits, axis=-1)
-    return pint
-
-
 class PInt(PArray):
-    def __init__(self, logits, lower):
+    def __init__(self, logits, lower, log_input=True):
+        if not log_input:
+            logits = tf.math.log(logits + EPSILON)
+        logits = tf.nn.log_softmax(logits, axis=-1)
         super().__init__(logits, lower)
 
     def __add__(self, other):
@@ -75,14 +68,6 @@ class PInt(PArray):
     def __mod__(self, other):
         if isinstance(other, int):
             logits, lower = modPIntInt(self, other)
-            return PInt(logits, lower)
-        else:
-            raise NotImplementedError()
-
-    # TODO double check or is normalised
-    def __or__(self, other):
-        if isinstance(other, PInt):
-            logits, lower = orPIntPInt(self, other)
             return PInt(logits, lower)
         else:
             raise NotImplementedError()
