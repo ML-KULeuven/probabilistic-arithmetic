@@ -53,7 +53,14 @@ class PInt(PArray):
 
     def __mul__(self, other: int):
         if isinstance(other, int):
-            logits, lower = multiplyPIntInt(self, other)
+            if other == 1:
+                return self
+            elif other == 0:
+                return 0
+            elif other < 0:
+                return -self * (-other)
+            else:
+                logits, lower = multiplyPIntInt(self, other)
             return PInt(logits, lower)
         else:
             raise NotImplementedError()

@@ -26,13 +26,30 @@ class Trainer:
         self.log_its = log_its
 
     @tf.function
-    def train_step(self, images, label):
+    def train_step(self, images, labels):
         with tf.GradientTape() as tape:
             predictions = self.model(images)
-            loss = self.loss_object(label, predictions.logits)
+            # loss = self.loss_object(label, predictions)
+            loss = -tf.reduce_mean(predictions)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss
+
+    @tf.function
+    def val_step(self, images, labels):
+        predictions = self.model(images)
+        # loss = self.loss_object(labels, predictions)
+        loss = -tf.reduce_mean(predictions)
+        return loss
+
+    def evaluate(self):
+        val_loss = tf.keras.metrics.Mean()
+        for batch in self.val_dataset:
+            images = batch[0]
+            labels = batch[1]
+            loss = self.val_step(images, labels)
+            val_loss.update_state(loss)
+        return val_loss.result().numpy()
 
     def train(self):
         avg_loss = tf.keras.metrics.Mean()
@@ -48,12 +65,24 @@ class Trainer:
                 duration.update_state(time.time() - start_time)
                 if count % self.log_its == 0:
                     acc = self.val_fn(self.model, self.val_dataset)
+                    val_loss = self.evaluate()
+                    data = [
+                        epoch + 1,
+                        count,
+                        avg_loss.result().numpy(),
+                        val_loss,
+                        acc.numpy(),
+                        duration.result().numpy(),
+                    ]
                     print(
-                        f"Epoch {epoch + 1}   Iteration: {count}   Loss: {avg_loss.result().numpy()}  Accuracy: {acc.numpy()}  Time(s): {duration.result().numpy()}"
+                        "Epoch {: >5}  Iteration: {: >5}   Loss: {: >20}    Val Loss: {: >20}    Accuracy: {: >8}  Time(s): {: >20} ".format(
+                            *data
+                        )
                     )
                     wandb.log(
                         {
                             "loss": avg_loss.result().numpy(),
+                            "val_loss": val_loss,
                             "accuracy": acc.numpy(),
                             "time": duration.result().numpy(),
                         }

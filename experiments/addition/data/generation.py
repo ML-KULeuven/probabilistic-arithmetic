@@ -1,137 +1,112 @@
+import os
 import pickle
 import tensorflow as tf
 
+from pathlib import Path
 
-TRAIN_BUF = 60000
-VAL_BUF = 1000
-TEST_BUF = 9000
+PARENT_DIR = Path(__file__).resolve().parent
 
 
-def create_numbers(N, data_x, data_y, batch_size=10, log=True):
-    idx_perm = tf.random.shuffle(tf.range(data_x.shape[0]))
+TRAINVAL_SIZE = 60000
+VAL_SIZE = 1000
+TEST_SIZE = 10000
 
-    generator = []
-    safety_length = data_x.shape[0] // (2 * N * batch_size) * (2 * N * batch_size)
-    for i in range(safety_length // (2 * N)):
-        sum_image1 = []
-        value1 = 0
-        for j in range(N):
-            sum_image1.insert(
-                0, tf.expand_dims(data_x[idx_perm[2 * N * i + j]], axis=-1)
+
+def sum_labels(labels):
+    value = 0
+    for i in range(1, len(labels) + 1):
+        value += tf.cast(labels[-i], dtype=tf.int64) * 10 ** (i - 1)
+    return value
+
+
+def create_numbers(digits_per_number, numbers, data_x, data_y, batch_size=10):
+    images = []
+    labels = []
+
+    data_size = (
+        data_x.shape[0] // (numbers * digits_per_number * batch_size) * (batch_size)
+    )
+    for i in range(data_size):
+        number_images = []
+        for j in range(numbers):
+            number_images.append(
+                data_x[
+                    i * numbers * digits_per_number
+                    + j * digits_per_number : i * numbers * digits_per_number
+                    + (j + 1) * digits_per_number,
+                    ...,
+                ]
             )
-            value1 += data_y[idx_perm[2 * N * i + j]] * 10**j
+        number_images = tf.stack(number_images, axis=0)
 
-        sum_image2 = []
-        value2 = 0
-        for j in range(N, 2 * N):
-            sum_image2.insert(
-                0, tf.expand_dims(data_x[idx_perm[2 * N * i + j]], axis=-1)
-            )
-            value2 += data_y[idx_perm[2 * N * i + j]] * 10 ** (j - N)
+        number_sums = []
+        for j in range(numbers):
+            number_labels = data_y[
+                i * numbers * digits_per_number
+                + j * digits_per_number : i * numbers * digits_per_number
+                + (j + 1) * digits_per_number
+            ]
+            number_sums.append(sum_labels(number_labels))
 
-        """ Target is 0., as we optimise the log probability """
-        if log:
-            target = 0.0
-        else:
-            target = 1.0
-        generator.append((sum_image1, sum_image2, value1 + value2, target))
-    return generator
+        label = sum(number_sums)
+
+        images.append(number_images)
+        labels.append(label)
+
+    return images, labels
 
 
-def create_loader(N, BATCH_SIZE=10, log=False):
-    TRAIN_BUF = 60000 // (2 * N * BATCH_SIZE) * (BATCH_SIZE)
-    VAL_BUF = 1000 // (2 * N * BATCH_SIZE) * (BATCH_SIZE)
-    TEST_BUF = 9000 // (2 * N * BATCH_SIZE) * (BATCH_SIZE)
+def create_loader(
+    digits_per_number: int,
+    numbers: int = 2,
+    batch_size: int = 10,
+):
 
-    if log:
-        target = "log_prob"
+    train_data_file = PARENT_DIR / "data" / f"{digits_per_number}_train.pkl"
+    val_data_file = PARENT_DIR / "data" / f"{digits_per_number}_val.pkl"
+    test_data_file = PARENT_DIR / "data" / f"{digits_per_number}_test.pkl"
+
+    if os.path.exists(train_data_file):
+        train_data = pickle.load(open(train_data_file, "rb"))
+        val_data = pickle.load(open(val_data_file, "rb"))
+        test_data = pickle.load(open(test_data_file, "rb"))
     else:
-        target = "prob"
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+        x_train = x_train.astype("float32") / 255.0  # [60000, 28, 28]
+        x_test = x_test.astype("float32") / 255.0  # [10000, 28, 28]
 
-    try:
-        train_gen = pickle.load(
-            open(
-                f"experiments/addition/data/data_{N}_train_batch{BATCH_SIZE}_{target}.pkl",
-                "rb",
-            )
-        )
-        test_gen = pickle.load(
-            open(
-                f"experiments/addition/data/data_{N}_test_batch{BATCH_SIZE}_{target}.pkl",
-                "rb",
-            )
-        )
+        x_train = x_train[:-VAL_SIZE, ...]
+        y_train = y_train[:-VAL_SIZE]
 
-        train_dataset = (
-            tf.data.Dataset.from_generator(
-                lambda: train_gen, (tf.float32, tf.float32, tf.int64, tf.float32)
-            )
-            .shuffle(TRAIN_BUF)
-            .batch(BATCH_SIZE)
-        )
-        val_dataset = (
-            tf.data.Dataset.from_generator(
-                lambda: test_gen[:VAL_BUF],
-                (tf.float32, tf.float32, tf.int64, tf.float32),
-            )
-            .shuffle(VAL_BUF)
-            .batch(BATCH_SIZE)
-        )
-        test_dataset = (
-            tf.data.Dataset.from_generator(
-                lambda: test_gen[VAL_BUF:],
-                (tf.float32, tf.float32, tf.int64, tf.float32),
-            )
-            .shuffle(TEST_BUF)
-            .batch(BATCH_SIZE)
-        )
+        x_val = x_train[-VAL_SIZE:, ...]
+        y_val = y_train[-VAL_SIZE:]
 
-        return train_dataset, val_dataset, test_dataset
-    except FileNotFoundError:
-        pass
+        train_data = create_numbers(digits_per_number, numbers, x_train, y_train)
+        val_data = create_numbers(digits_per_number, numbers, x_val, y_val)
+        test_data = create_numbers(digits_per_number, numbers, x_test, y_test)
 
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    x_train = x_train.astype("float32") / 255.0  # [60000, 28, 28]
-    x_test = x_test.astype("float32") / 255.0  # [10000, 28, 28]
+        if not os.path.exists(PARENT_DIR / "data"):
+            os.makedirs(PARENT_DIR / "data")
+        pickle.dump(train_data, open(train_data_file, "wb+"))
+        pickle.dump(val_data, open(val_data_file, "wb+"))
+        pickle.dump(test_data, open(test_data_file, "wb+"))
 
-    train_gen = create_numbers(N, x_train, y_train, log=log)
-    test_gen = create_numbers(N, x_test, y_test, log=log)
+    TRAIN_BUF = (
+        (TRAINVAL_SIZE - VAL_SIZE)
+        // (numbers * digits_per_number * batch_size)
+        * (numbers * digits_per_number * batch_size)
+    )
 
     train_dataset = (
-        tf.data.Dataset.from_generator(
-            lambda: train_gen, (tf.float32, tf.float32, tf.int64, tf.float32)
-        )
+        tf.data.Dataset.from_tensor_slices((train_data[0], train_data[1]))
         .shuffle(TRAIN_BUF)
-        .batch(BATCH_SIZE)
+        .batch(batch_size=batch_size, drop_remainder=True)
     )
-    val_dataset = (
-        tf.data.Dataset.from_generator(
-            lambda: test_gen[:VAL_BUF], (tf.float32, tf.float32, tf.int64, tf.float32)
-        )
-        .shuffle(VAL_BUF)
-        .batch(BATCH_SIZE)
+    val_dataset = tf.data.Dataset.from_tensor_slices((val_data[0], val_data[1])).batch(
+        batch_size
     )
-    test_dataset = (
-        tf.data.Dataset.from_generator(
-            lambda: test_gen[VAL_BUF:], (tf.float32, tf.float32, tf.int64, tf.float32)
-        )
-        .shuffle(TEST_BUF)
-        .batch(BATCH_SIZE)
-    )
-
-    pickle.dump(
-        train_gen,
-        open(
-            f"experiments/addition/data/data_{N}_train_batch{BATCH_SIZE}_{target}.pkl",
-            "wb",
-        ),
-    )
-    pickle.dump(
-        test_gen,
-        open(
-            f"experiments/addition/data/data_{N}_test_batch{BATCH_SIZE}_{target}.pkl",
-            "wb",
-        ),
-    )
+    test_dataset = tf.data.Dataset.from_tensor_slices(
+        (test_data[0], test_data[1])
+    ).batch(batch_size, drop_remainder=True)
 
     return train_dataset, val_dataset, test_dataset

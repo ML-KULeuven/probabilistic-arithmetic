@@ -22,7 +22,7 @@ def log_convolution(p1, p2, signal_length):
     a1 = tf.math.reduce_max(p1, axis=-1, keepdims=True)
     a2 = tf.math.reduce_max(p2, axis=-1, keepdims=True)
 
-    # TODO if we stay in log space we can probably get rid of the casting
+    # I tested a removal of the casting, we get numerical divergences then
     p1 = tf.cast(p1 - a1, dtype=tf.float64)
     p2 = tf.cast(p2 - a2, dtype=tf.float64)
 

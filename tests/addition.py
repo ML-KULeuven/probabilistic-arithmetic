@@ -10,11 +10,12 @@ sys.path.append(str(ROOT_PATH))
 
 from plia import PInt, log_expectation
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
 def main():
-    DIGITS = 2
+    DIGITS = 7
 
     probs = np.ones([10, 10])
     probs[:, 0] = 0.99
