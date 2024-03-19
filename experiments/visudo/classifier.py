@@ -163,6 +163,7 @@ class SudokuSolver(tf.keras.Model):
 class ViSudoDigitClassifier(tf.keras.Model):
 
     def __init__(self, grid_size: int = 9):
+        self.grid_size = grid_size
         super(ViSudoDigitClassifier, self).__init__()
 
         self.model = tf.keras.Sequential()
@@ -176,11 +177,13 @@ class ViSudoDigitClassifier(tf.keras.Model):
         self.model.add(tf.keras.layers.Dense(grid_size))
 
     def call(self, inputs, training=None, mask=None):
-        b, row, column = inputs.shape[0:3]
         inputs = E.rearrange(inputs, "b row column ... -> (b row column) ...")
         inputs = tf.expand_dims(inputs, axis=-1)
         x = self.model(inputs)
         x = E.rearrange(
-            x, "(b row column) ... -> b row column ...", b=b, row=row, column=column
+            x,
+            "(b row column) ... -> b row column ...",
+            row=self.grid_size,
+            column=self.grid_size,
         )
         return x

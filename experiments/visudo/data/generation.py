@@ -130,7 +130,7 @@ def create_loader(
         .batch(batch_size=batch_size, drop_remainder=True)
     )
     val_dataset = tf.data.Dataset.from_tensor_slices((val_data[0], val_data[1])).batch(
-        batch_size=batch_size
+        batch_size=batch_size, drop_remainder=True
     )
     test_dataset = tf.data.Dataset.from_tensor_slices(
         (test_data[0], test_data[1])
