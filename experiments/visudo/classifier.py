@@ -151,7 +151,9 @@ class SudokuSolver(tf.keras.Model):
         constraints.append(self.get_constraints(x, "column"))
         if self.grid_size == 9:
             constraints.append(self.get_constraints(x, "box"))
-        constraints = E.rearrange(constraints, "i ... -> ... i")
+        constraints = E.rearrange(
+            constraints, "i ... constraints p -> ... (constraints i) p"
+        )
 
         krat_constraints = Krat(constraints)
         pintjes = krat_constraints.sum_reduce()

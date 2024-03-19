@@ -64,7 +64,7 @@ def multi_log_convolution(p, signal_length):
     p = tf.signal.irfft(p, fft_length=[signal_length])
 
     p = tf.math.log(p + EPSILON)
-    p = tf.cast(logp, dtype=tf.float32)
+    p = tf.cast(p, dtype=tf.float32)
 
     a = tf.math.reduce_sum(a, axis=-2)
     return p + a

@@ -162,6 +162,5 @@ class Krat(PArray):
         return self.logits.shape[-2]
 
     def sum_reduce(self):
-        sumreduceKrat(self)
-
+        logits, lower = sumreduceKrat(self)
         return PInt(logits, lower)
