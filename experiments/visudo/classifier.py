@@ -109,7 +109,7 @@ class SudokuSolver(tf.keras.Model):
         self.grid_size = grid_size
 
     def binarize(self, probs):
-        neg_probs = log1mexp(inputs)
+        neg_probs = log1mexp(probs)
         return E.rearrange([neg_probs, probs], "2 ... -> ... 2")
 
     def distinct_row_elements(self, inputs):
@@ -131,7 +131,7 @@ class SudokuSolver(tf.keras.Model):
         if ctype == "row":
             return x
         elif ctype == "column":
-            return E.rearrange(inputs, "b r c p -> b c r p")
+            return E.rearrange(x, "b r c p -> b c r p")
         elif ctype == "box":
             box_dim = int(np.sqrt(self.grid_size))
             return E.rearrange(
