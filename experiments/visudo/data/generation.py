@@ -1,6 +1,7 @@
 import os
 import pickle
-import torch
+
+# import torch
 import numpy as np
 import tensorflow as tf
 
@@ -54,10 +55,10 @@ def load_visudo(
     labels = np.loadtxt(labels_file, delimiter="\t", dtype=str)
 
     labels = convertToInts(labels)
-    labels = 1 - torch.max(torch.tensor(labels), dim=1)[1]
+    labels = 1 - np.max(labels, axis=1)[1]
 
     grids = np.loadtxt(grids_file, delimiter="\t", dtype=float)
-    grids = torch.tensor(grids, dtype=torch.float32)
+    # grids = torch.tensor(grids, dtype=torch.float32)
 
     if not use_negative:
         grids = grids[labels == 1]
@@ -107,10 +108,10 @@ def create_loader(
         .batch(batch_size=batch_size, drop_remainder=True)
     )
     val_dataset = tf.data.Dataset.from_tensor_slices((val_data[0], val_data[1])).batch(
-        50
+        batch_size=batch_size
     )
     test_dataset = tf.data.Dataset.from_tensor_slices(
         (test_data[0], test_data[1])
-    ).batch(50, drop_remainder=True)
+    ).batch(batch_size=batch_size, drop_remainder=False)
 
     return train_dataset, val_dataset, test_dataset
