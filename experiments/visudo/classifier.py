@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import einops as E
 
-from plia import PInt, log_expectation
+from plia import Krat, log_expectation, log1mexp
 
 
 class ViSudoClassifier(tf.keras.Model):
@@ -19,87 +19,143 @@ class ViSudoClassifier(tf.keras.Model):
         return x
 
 
+# class SudokuSolver(tf.keras.Model):
+
+#     def __init__(self, grid_size):
+#         super().__init__()
+#         self.grid_size = grid_size
+
+#     def binary_representation(self, inputs, grid_size):
+#         rows = []
+#         for i in range(grid_size):
+#             column = []
+#             for j in range(grid_size):
+#                 binaries = []
+#                 for k in range(grid_size):
+#                     logit_k = inputs[:, i, j, k]
+#                     binary = PInt(tf.stack([-logit_k, logit_k], -1), 0)
+#                     binaries.append(binary)
+#                 column.append(binaries)
+#             rows.append(column)
+#         return rows
+
+#     def binary_numpy_representation(self, inputs, grid_size):
+#         representation = self.binary_representation(inputs, grid_size)
+#         representation = np.array(representation, dtype=object)
+#         return representation
+
+#     def distinct_row_elements(self, inputs):
+#         x = E.reduce(inputs, "row column binaries -> (row binaries)", "sum")
+#         row_constraints = [0] * len(x)
+#         for i, _ in enumerate(x):
+#             row_constraints[i] = log_expectation(x[i] == 1)
+#         row_constraints = tf.stack(row_constraints, axis=1)
+#         return row_constraints
+
+#     def distinct_column_elements(self, inputs):
+#         x = E.reduce(inputs, "row column binaries -> (column binaries)", "sum")
+#         column_constraints = [0] * len(x)
+#         for j, _ in enumerate(x):
+#             column_constraints[j] = log_expectation(x[j] == 1)
+#         column_constraints = tf.stack(column_constraints, axis=1)
+#         return column_constraints
+
+#     def distinct_box_elements(self, inputs):
+#         row = inputs.shape[0]
+#         column = inputs.shape[1]
+#         binaries = inputs.shape[2]
+#         box_row = row // 3
+#         box_column = column // 3
+#         x = E.rearrange(
+#             inputs,
+#             "(box_row r) (box_column c) binaries -> box_row box_column (r c) binaries",
+#             r=3,
+#             c=3,
+#             box_row=box_row,
+#             box_column=box_column,
+#         )
+#         x = E.reduce(
+#             x,
+#             "box_row box_column box binaries -> (box_row box_column binaries)",
+#             "sum",
+#         )
+
+#         box_constraints = [0] * len(x)
+#         for i, _ in enumerate(x):
+#             box_constraints[i] = log_expectation(x[i] == 1)
+#         box_constraints = tf.stack(box_constraints, axis=1)
+#         return box_constraints
+
+#     def call(self, inputs, training=None, mask=None):
+#         grid_size = inputs.shape[-1]
+
+#         x = self.binary_numpy_representation(inputs, grid_size)
+#         row_constraint = self.distinct_row_elements(x)
+#         column_constraint = self.distinct_column_elements(x)
+
+#         if grid_size == 9:
+#             box_constraint = self.distinct_box_elements(x)
+#             return tf.concat(
+#                 [row_constraint, column_constraint, box_constraint], axis=-1
+#             )
+#         else:
+#             return tf.concat([row_constraint, column_constraint], axis=-1)
+
+
 class SudokuSolver(tf.keras.Model):
 
     def __init__(self, grid_size):
         super().__init__()
         self.grid_size = grid_size
 
-    def binary_representation(self, inputs, grid_size):
-        rows = []
-        for i in range(grid_size):
-            column = []
-            for j in range(grid_size):
-                binaries = []
-                for k in range(grid_size):
-                    logit_k = inputs[:, i, j, k]
-                    binary = PInt(tf.stack([-logit_k, logit_k], -1), 0)
-                    binaries.append(binary)
-                column.append(binaries)
-            rows.append(column)
-        return rows
-
-    def binary_numpy_representation(self, inputs, grid_size):
-        representation = self.binary_representation(inputs, grid_size)
-        representation = np.array(representation, dtype=object)
-        return representation
+    def binarize(self, probs):
+        neg_probs = log1mexp(inputs)
+        return E.rearrange([neg_probs, probs], "2 ... -> ... 2")
 
     def distinct_row_elements(self, inputs):
-        x = E.reduce(inputs, "row column binaries -> (row binaries)", "sum")
-        row_constraints = [0] * len(x)
-        for i, _ in enumerate(x):
-            row_constraints[i] = log_expectation(x[i] == 1)
-        row_constraints = tf.stack(row_constraints, axis=1)
-        return row_constraints
+        return E.rearrange(inputs, "b r c p -> b c r p")
 
     def distinct_column_elements(self, inputs):
-        x = E.reduce(inputs, "row column binaries -> (column binaries)", "sum")
-        column_constraints = [0] * len(x)
-        for j, _ in enumerate(x):
-            column_constraints[j] = log_expectation(x[j] == 1)
-        column_constraints = tf.stack(column_constraints, axis=1)
-        return column_constraints
+        return E.rearrange(inputs, "b r c p -> b c r p")
 
     def distinct_box_elements(self, inputs):
-        row = inputs.shape[0]
-        column = inputs.shape[1]
-        binaries = inputs.shape[2]
-        box_row = row // 3
-        box_column = column // 3
-        x = E.rearrange(
+        box_dim = int(np.sqrt(self.grid_size))
+        return E.rearrange(
             inputs,
-            "(box_row r) (box_column c) binaries -> box_row box_column (r c) binaries",
-            r=3,
-            c=3,
-            box_row=box_row,
-            box_column=box_column,
-        )
-        x = E.reduce(
-            x,
-            "box_row box_column box binaries -> (box_row box_column binaries)",
-            "sum",
+            "b (r box_r) (c box_c) p -> b (r c) (box_r box_c) p",
+            r=box_dim,
+            c=box_dim,
         )
 
-        box_constraints = [0] * len(x)
-        for i, _ in enumerate(x):
-            box_constraints[i] = log_expectation(x[i] == 1)
-        box_constraints = tf.stack(box_constraints, axis=1)
-        return box_constraints
-
-    def call(self, inputs, training=None, mask=None):
-        grid_size = inputs.shape[-1]
-
-        x = self.binary_numpy_representation(inputs, grid_size)
-        row_constraint = self.distinct_row_elements(x)
-        column_constraint = self.distinct_column_elements(x)
-
-        if grid_size == 9:
-            box_constraint = self.distinct_box_elements(x)
-            return tf.concat(
-                [row_constraint, column_constraint, box_constraint], axis=-1
+    def get_constraints(self, x, ctype):
+        if ctype == "row":
+            return x
+        elif ctype == "column":
+            return E.rearrange(inputs, "b r c p -> b c r p")
+        elif ctype == "box":
+            box_dim = int(np.sqrt(self.grid_size))
+            return E.rearrange(
+                x,
+                "b (r box_r) (c box_c) p -> b (r c) (box_r box_c) p",
+                r=box_dim,
+                c=box_dim,
             )
         else:
-            return tf.concat([row_constraint, column_constraint], axis=-1)
+            raise NotImplementedError()
+
+    def call(self, inputs, training=None, mask=None):
+        x = self.binarize(inputs)
+        constraints = []
+
+        constraints.append(self.get_constraints(x, "row"))
+        constraints.append(self.get_constraints(x, "column"))
+        if self.grid_size == 9:
+            constraints.append(self.get_constraints(x, "box"))
+        constraints = E.rearrange(constraints, "i ... -> ... i")
+
+        krat_constraints = Krat(constraints)
+        pintjes = krat_constraints.sum_reduce()
+        return log_expectation(pintjes == 1)
 
 
 class ViSudoDigitClassifier(tf.keras.Model):

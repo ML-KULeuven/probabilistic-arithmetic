@@ -51,6 +51,25 @@ def log_convolution(p1, p2, signal_length):
     return logp + a1 + a2
 
 
+def multi_log_convolution(p, signal_length):
+    a = tf.math.reduce_max(p, axis=-1, keepdims=True)
+    # I tested a removal of the casting, we get numerical divergences then
+    p = tf.cast(p - a, dtype=tf.float64)
+    p = tf.math.exp(p)
+
+    p = pad(p, signal_length)
+    p = tf.signal.rfft(p, fft_length=[signal_length])
+
+    p = tf.math.reduce_prod(p, axis=-2)
+    p = tf.signal.irfft(p, fft_length=[signal_length])
+
+    p = tf.math.log(p + EPSILON)
+    p = tf.cast(logp, dtype=tf.float32)
+
+    a = tf.math.reduce_sum(a, axis=-2)
+    return p + a
+
+
 def addPIntPInt(x1, x2):
     lower = x1.lower + x2.lower
     upper = x1.upper + x2.upper
@@ -98,3 +117,12 @@ def modPIntInt(x, c):
     logits = E.rearrange(logits, "... (card c) -> ... card c", c=c)
     logits = tf.reduce_logsumexp(logits, axis=-2)
     return logits, 0
+
+
+def sumreduceKrat(krat):
+    lower = krat.lower * krat.n_rvs
+    upper = krat.upper * krat.n_rvs
+
+    cardinality = upper - lower + 1
+    p = multi_log_convolution(krat.logits, cardinality)
+    return p, lower
