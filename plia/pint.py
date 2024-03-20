@@ -6,6 +6,7 @@ from .arithmetics import (
     multiplyPIntInt,
     floordividePIntInt,
     modPIntInt,
+    sumreduceKrat,
 )
 
 
@@ -147,3 +148,19 @@ class PIverson(PArray):
 
     def __neg__(self, x):
         return PIverson(x.logits, x.lower, negated=True)
+
+
+class Krat(PArray):
+    def __init__(self, logits, lower, log_input=True):
+        if not log_input:
+            logits = tf.math.log(logits + EPSILON)
+        logits = tf.nn.log_softmax(logits, axis=-1)
+        super().__init__(logits, lower)
+
+    @property
+    def n_rvs(self):
+        return self.logits.shape[-2]
+
+    def sum_reduce(self):
+        logits, lower = sumreduceKrat(self)
+        return PInt(logits, lower)
