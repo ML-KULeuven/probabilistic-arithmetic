@@ -15,11 +15,11 @@ os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
 def main():
-    DIGITS = 7
+    DIGITS = 3
 
-    probs = np.ones([10, 10])
-    probs[:, 0] = 0.99
-    probs[:, 1:] = 0.01 / 9
+    probs = np.ones([10, 10]) / 10
+    # probs[:, 0] = 0.99
+    # probs[:, 1:] = 0.01 / 9
     probs = tf.constant(probs, dtype=tf.float32)
 
     number1 = PInt(probs, 0, log_input=False)

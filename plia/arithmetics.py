@@ -51,6 +51,38 @@ def log_convolution(p1, p2, signal_length):
     return logp + a1 + a2
 
 
+def log_matmul(x1, x2, cardinality):
+    logp1 = x1.logits
+    logp2 = x2.logits
+
+    b = logp1.shape[0]
+    n = logp1.shape[-1]
+    m = logp2.shape[-1]
+    dim = tf.minimum(n, m)
+
+    p1 = tf.math.exp(logp1)
+    p2 = tf.math.exp(logp2)
+
+    p1 = tf.expand_dims(p1, -1)
+    p2 = tf.expand_dims(p2, -2)
+
+    p = tf.matmul(p1, p2)
+    p = tf.reverse(p, [-1])
+    p = tf.expand_dims(p, 1)
+    p = tf.pad(p, [[0, 0], [0, 0], [dim - 1, dim - 1], [0, 0]], constant_values=0.0)
+
+    diagonal = tf.eye(dim, dtype=tf.float32)
+    diagonal = tf.expand_dims(diagonal, 0)
+    diagonal = tf.expand_dims(diagonal, 0)
+    p = tf.pad(p, [[0, 0], [0, 0], [dim - 1, 0], [0, 0]], constant_values=0.0)
+
+    # TODO: fix the dimension, currently still off
+    p = tf.nn.conv2d(p, diagonal, padding="VALID", strides=1)[:, 0, ...]
+    p = tf.reduce_sum(p, axis=-1)
+    logp = tf.math.log(p + EPSILON)
+    return logp
+
+
 def addPIntPInt(x1, x2):
     lower = x1.lower + x2.lower
     upper = x1.upper + x2.upper

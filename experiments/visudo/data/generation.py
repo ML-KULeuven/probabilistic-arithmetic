@@ -111,6 +111,6 @@ def create_loader(
     )
     test_dataset = tf.data.Dataset.from_tensor_slices(
         (test_data[0], test_data[1])
-    ).batch(50, drop_remainder=True)
+    ).batch(50)
 
     return train_dataset, val_dataset, test_dataset
