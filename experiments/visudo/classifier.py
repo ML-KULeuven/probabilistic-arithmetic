@@ -109,14 +109,16 @@ class SudokuSolver(tf.keras.Model):
         self.grid_size = grid_size
 
     def binarize(self, probs):
-        neg_probs = log1mexp(probs)
-        return E.rearrange([neg_probs, probs], "2 ... -> ... 2")
+        # neg_probs = log1mexp(probs)
+        neg_probs = -probs
+        return tf.stack([neg_probs, probs], -1)
+        # return E.rearrange([neg_probs, probs], "2 ... -> ... 2")
 
     def distinct_row_elements(self, inputs):
-        return E.rearrange(inputs, "b r c p -> b c r p")
+        return E.rearrange(inputs, "b r c p 2 -> b c r p 2")
 
     def distinct_column_elements(self, inputs):
-        return E.rearrange(inputs, "b r c p -> b c r p")
+        return E.rearrange(inputs, "b r c p 2 -> b c r p 2")
 
     def distinct_box_elements(self, inputs):
         box_dim = int(np.sqrt(self.grid_size))
@@ -129,14 +131,14 @@ class SudokuSolver(tf.keras.Model):
 
     def get_constraints(self, x, ctype):
         if ctype == "row":
-            return x
+            return E.rearrange(x, "b r c p binaries -> b (r p) c binaries")
         elif ctype == "column":
-            return E.rearrange(x, "b r c p -> b c r p")
+            return E.rearrange(x, "b r c p binaries -> b (c p) r binaries")
         elif ctype == "box":
             box_dim = int(np.sqrt(self.grid_size))
             return E.rearrange(
                 x,
-                "b (r box_r) (c box_c) p -> b (r c) (box_r box_c) p",
+                "b (r box_r) (c box_c) p binaries -> b (r c p) (box_r box_c) binaries",
                 r=box_dim,
                 c=box_dim,
             )
@@ -152,12 +154,14 @@ class SudokuSolver(tf.keras.Model):
         if self.grid_size == 9:
             constraints.append(self.get_constraints(x, "box"))
         constraints = E.rearrange(
-            constraints, "i ... constraints p -> ... (constraints i) p"
+            constraints,
+            "i b constraint_index constraints binaries -> b (constraint_index i) constraints binaries",
         )
 
-        krat_constraints = Krat(constraints)
+        krat_constraints = Krat(constraints, 0)
         pintjes = krat_constraints.sum_reduce()
-        return log_expectation(pintjes == 1)
+        expectation = log_expectation(pintjes == 1)
+        return expectation
 
 
 class ViSudoDigitClassifier(tf.keras.Model):

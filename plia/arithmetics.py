@@ -55,7 +55,6 @@ def log_matmul(x1, x2, cardinality):
     logp1 = x1.logits
     logp2 = x2.logits
 
-    b = logp1.shape[0]
     n = logp1.shape[-1]
     m = logp2.shape[-1]
     dim = tf.minimum(n, m)
