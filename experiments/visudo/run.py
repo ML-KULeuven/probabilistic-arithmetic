@@ -65,7 +65,7 @@ if __name__ == "__main__":
     parser.add_argument("--N_runs", type=int, default=1)
     args = parser.parse_args()
 
-    for seed in range(args.N_runs):
+    for seed in range(2, 2 + args.N_runs):
         p = mp.Process(
             target=train,
             args=(

@@ -13,6 +13,7 @@ class Trainer:
         train_dataset,
         val_dataset,
         val_fn,
+        encoding,
         epochs=10,
         log_its=100,
     ):
@@ -22,14 +23,26 @@ class Trainer:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.val_fn = val_fn
+        self.encoding = encoding
         self.epochs = epochs
         self.log_its = log_its
 
     @tf.function
     def train_step(self, images, label):
         with tf.GradientTape() as tape:
+            loss = 0
             predictions = self.model(images)
-            loss = self.loss_object(label, predictions.logits)
+            if self.encoding == "sum":
+                loss += self.loss_object(label, predictions.logits)
+            elif self.encoding == "carry":
+                predictions = tf.stack([pred.logits for pred in predictions], axis=-2)
+                label = tf.expand_dims(label, axis=-1)
+                predictions = tf.gather_nd(predictions, label, batch_dims=2)
+                # predictions = tf.exp(predictions)
+                # predictions = -tf.reduce_sum(predictions, axis=-1)
+                predictions = -tf.reduce_sum(predictions, axis=-1)
+                loss += tf.reduce_mean(predictions, axis=-1)
+                # loss += self.loss_object(label, predictions)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss

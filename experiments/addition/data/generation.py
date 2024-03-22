@@ -19,7 +19,21 @@ def sum_labels(labels):
     return value
 
 
-def create_numbers(digits_per_number, numbers, data_x, data_y, batch_size=10):
+def carry_labels(number_labels, digits_per_number, numbers):
+    number_sum = []
+    carry = 0
+    for i in range(1, digits_per_number + 1):
+        digit_sum = 0
+        for j in range(numbers):
+            digit_sum += number_labels[j][-i]
+        digit_sum += carry
+        number_sum.append(digit_sum % 10)
+        carry = digit_sum // 10
+    number_sum.append(carry)
+    return number_sum
+
+
+def create_numbers(digits_per_number, numbers, data_x, data_y, encoding, batch_size=10):
     images = []
     labels = []
 
@@ -39,16 +53,23 @@ def create_numbers(digits_per_number, numbers, data_x, data_y, batch_size=10):
             )
         number_images = tf.stack(number_images, axis=0)
 
+        number_labels = [None] * numbers
         number_sums = []
         for j in range(numbers):
-            number_labels = data_y[
+            number_labels[j] = data_y[
                 i * numbers * digits_per_number
                 + j * digits_per_number : i * numbers * digits_per_number
                 + (j + 1) * digits_per_number
             ]
-            number_sums.append(sum_labels(number_labels))
+            number_sums.append(sum_labels(number_labels[j]))
 
-        label = sum(number_sums)
+        if encoding == "sum":
+            label = sum(number_sums)
+        elif encoding == "carry":
+            label = carry_labels(number_labels, digits_per_number, numbers)
+            label = tf.stack(label, axis=-1)
+        else:
+            raise NotImplementedError("Encoding must be either 'sum' or 'carry'")
 
         images.append(number_images)
         labels.append(label)
@@ -60,11 +81,18 @@ def create_loader(
     digits_per_number: int,
     numbers: int = 2,
     batch_size: int = 10,
+    encoding: str = "sum",
 ):
-
-    train_data_file = PARENT_DIR / "data" / f"{digits_per_number}_train.pkl"
-    val_data_file = PARENT_DIR / "data" / f"{digits_per_number}_val.pkl"
-    test_data_file = PARENT_DIR / "data" / f"{digits_per_number}_test.pkl"
+    if encoding == "sum":
+        train_data_file = PARENT_DIR / "data" / f"{digits_per_number}_train.pkl"
+        val_data_file = PARENT_DIR / "data" / f"{digits_per_number}_val.pkl"
+        test_data_file = PARENT_DIR / "data" / f"{digits_per_number}_test.pkl"
+    elif encoding == "carry":
+        train_data_file = PARENT_DIR / "data" / f"{digits_per_number}_train_carry.pkl"
+        val_data_file = PARENT_DIR / "data" / f"{digits_per_number}_val_carry.pkl"
+        test_data_file = PARENT_DIR / "data" / f"{digits_per_number}_test_carry.pkl"
+    else:
+        raise NotImplementedError("Encoding must be either 'sum' or 'carry'")
 
     if os.path.exists(train_data_file):
         train_data = pickle.load(open(train_data_file, "rb"))
@@ -81,9 +109,15 @@ def create_loader(
         x_val = x_train[-VAL_SIZE:, ...]
         y_val = y_train[-VAL_SIZE:]
 
-        train_data = create_numbers(digits_per_number, numbers, x_train, y_train)
-        val_data = create_numbers(digits_per_number, numbers, x_val, y_val)
-        test_data = create_numbers(digits_per_number, numbers, x_test, y_test)
+        train_data = create_numbers(
+            digits_per_number, numbers, x_train, y_train, encoding
+        )
+        val_data = create_numbers(
+            digits_per_number, numbers, x_val, y_val, encoding, batch_size
+        )
+        test_data = create_numbers(
+            digits_per_number, numbers, x_test, y_test, encoding, batch_size
+        )
 
         if not os.path.exists(PARENT_DIR / "data"):
             os.makedirs(PARENT_DIR / "data")

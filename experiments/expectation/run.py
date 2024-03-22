@@ -73,7 +73,7 @@ def make_path(device, problem):
     return path
 
 
-def run_expecation(problem, max_bitwidth, device):
+def run_expectation(problem, max_bitwidth, device):
     """Start with a dry run to not time TF backend initialisation cost"""
     bitwidth = 1
     number1 = PInt(tf.random.uniform((2**bitwidth,), minval=0, maxval=1), 0)
@@ -124,4 +124,4 @@ if __name__ == "__main__":
             tf.config.experimental.set_visible_devices(GPUS[0], "GPU")
         else:
             tf.config.experimental.set_visible_devices([], "GPU")
-        run_expecation(p, args.max_bitwidth, args.device)
+        run_expectation(p, args.max_bitwidth, args.device)

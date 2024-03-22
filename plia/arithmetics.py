@@ -23,8 +23,11 @@ def log_convolution(p1, p2, signal_length):
     a2 = tf.math.reduce_max(p2, axis=-1, keepdims=True)
 
     # I tested a removal of the casting, we get numerical divergences then
-    p1 = tf.cast(p1 - a1, dtype=tf.float64)
-    p2 = tf.cast(p2 - a2, dtype=tf.float64)
+    p1 = p1 - a1
+    p2 = p2 - a2
+
+    p1 = tf.cast(p1, dtype=tf.float64)
+    p2 = tf.cast(p2, dtype=tf.float64)
 
     p1 = tf.math.exp(p1)
     p2 = tf.math.exp(p2)
@@ -85,7 +88,8 @@ def log_matmul(x1, x2, cardinality):
 def multi_log_convolution(p, signal_length):
     a = tf.math.reduce_max(p, axis=-1, keepdims=True)
     # I tested a removal of the casting, we get numerical divergences then
-    p = tf.cast(p - a, dtype=tf.float64)
+    p = p - a
+    p = tf.cast(p, dtype=tf.float64)
     p = tf.math.exp(p)
 
     p = pad(p, signal_length)
