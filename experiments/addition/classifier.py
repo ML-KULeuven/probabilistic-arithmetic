@@ -3,6 +3,7 @@ import einops as E
 import numpy as np
 
 from plia import PInt
+from keras.layers import *
 
 
 class SumClassifier(tf.keras.Model):

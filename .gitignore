@@ -5,20 +5,18 @@ __pycache__
 .vscode/
 wandb/
 
-experiments/addition/data/data_6_test_batch10_prob.pkl
-experiments/addition/data/data_6_train_batch10_prob.pkl
-
 experiments/expectation/results/
 experiments/expectation/results/
 
 experiments/luhn/results/
 experiments/luhn/data/data
 
-experiments/visudo/data/ViSudo-PC/
-experiments/visudo/data/data/
-
 experiments/addition/data/data/
 
+experiments/visudo/data/ViSudo-PC/
+experiments/visudo/data/data/
 experiments/visudo/data/ViSudo-PC_dimension::9_datasets::mnist_strategy::simple.zip
 experiments/visudo/data/ViSudo-PC_dimension::4_datasets::mnist_strategy::simple.zip
 experiments/visudo/data/tmp/
+
+results/

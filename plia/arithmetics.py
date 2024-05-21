@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import einops as E
 
+
 EPSILON = tf.keras.backend.epsilon()
 
 
@@ -19,10 +20,18 @@ def logit_pad(logits, lower_padding, upper_padding):
 
 
 def log_convolution(p1, p2, signal_length):
+    """
+    Imlementation of summing the PMF of two probilistic integers using the fast log-conv-exp trick.
+
+    @param p1: The PMF of the first probabilistic integer
+    @param p2: The PMF of the second probabilistic integer
+    @param signal_length: The length of the outcome space
+
+    @return: The PMF of the sum of the two probabilistic integers
+    """
     a1 = tf.math.reduce_max(p1, axis=-1, keepdims=True)
     a2 = tf.math.reduce_max(p2, axis=-1, keepdims=True)
 
-    # I tested a removal of the casting, we get numerical divergences then
     p1 = p1 - a1
     p2 = p2 - a2
 
@@ -34,13 +43,6 @@ def log_convolution(p1, p2, signal_length):
 
     p1 = pad(p1, signal_length)
     p2 = pad(p2, signal_length)
-
-    """ 
-    Currently convolutions in tensorflow are limited in size they can deal with. From blogposts it seems that a newer version of cudnn (8.0) can solve it for some gpus. On CPU everything is fine. 
-    Specifically, MNIST addition for 7 digits is too big, even though we should have plenty of memory.
-
-    Apparently, the biggest prime divisor of the signal length can not be bigger than 127, or at least if I can believe the internet.
-    """
 
     p1 = tf.signal.rfft(p1, fft_length=[signal_length])
     p2 = tf.signal.rfft(p2, fft_length=[signal_length])
@@ -54,40 +56,18 @@ def log_convolution(p1, p2, signal_length):
     return logp + a1 + a2
 
 
-def log_matmul(x1, x2, cardinality):
-    logp1 = x1.logits
-    logp2 = x2.logits
-
-    n = logp1.shape[-1]
-    m = logp2.shape[-1]
-    dim = tf.minimum(n, m)
-
-    p1 = tf.math.exp(logp1)
-    p2 = tf.math.exp(logp2)
-
-    p1 = tf.expand_dims(p1, -1)
-    p2 = tf.expand_dims(p2, -2)
-
-    p = tf.matmul(p1, p2)
-    p = tf.reverse(p, [-1])
-    p = tf.expand_dims(p, 1)
-    p = tf.pad(p, [[0, 0], [0, 0], [dim - 1, dim - 1], [0, 0]], constant_values=0.0)
-
-    diagonal = tf.eye(dim, dtype=tf.float32)
-    diagonal = tf.expand_dims(diagonal, 0)
-    diagonal = tf.expand_dims(diagonal, 0)
-    p = tf.pad(p, [[0, 0], [0, 0], [dim - 1, 0], [0, 0]], constant_values=0.0)
-
-    # TODO: fix the dimension, currently still off
-    p = tf.nn.conv2d(p, diagonal, padding="VALID", strides=1)[:, 0, ...]
-    p = tf.reduce_sum(p, axis=-1)
-    logp = tf.math.log(p + EPSILON)
-    return logp
-
-
 def multi_log_convolution(p, signal_length):
+    """
+    Implementation of summing the PMF of a Krat (tensor) of probabilistic integers using the fast log-conv-exp trick.
+
+    @param p: The PMF of the probabilistic integers in a Krat
+    @param signal_length: The length of the outcome space
+
+    @return: The PMF of the sum of the probabilistic integers in the Krat
+    """
+
     a = tf.math.reduce_max(p, axis=-1, keepdims=True)
-    # I tested a removal of the casting, we get numerical divergences then
+
     p = p - a
     p = tf.cast(p, dtype=tf.float64)
     p = tf.math.exp(p)

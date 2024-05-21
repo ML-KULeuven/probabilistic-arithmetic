@@ -2,12 +2,12 @@ import tensorflow as tf
 import numpy as np
 import einops as E
 
-from plia import Krat, log_expectation, log1mexp
+from plia import Krat, log_expectation
 
 
 class ViSudoClassifier(tf.keras.Model):
 
-    def __init__(self, grid_size: int = 9):
+    def __init__(self, grid_size: int):
         super().__init__()
         self.digit_classifier = ViSudoDigitClassifier(grid_size)
         self.sudoku_solver = SudokuSolver(grid_size)
@@ -26,25 +26,8 @@ class SudokuSolver(tf.keras.Model):
         self.grid_size = grid_size
 
     def binarize(self, probs):
-        # neg_probs = log1mexp(probs)
         neg_probs = -probs
         return tf.stack([neg_probs, probs], -1)
-        # return E.rearrange([neg_probs, probs], "2 ... -> ... 2")
-
-    def distinct_row_elements(self, inputs):
-        return E.rearrange(inputs, "b r c p 2 -> b c r p 2")
-
-    def distinct_column_elements(self, inputs):
-        return E.rearrange(inputs, "b r c p 2 -> b c r p 2")
-
-    def distinct_box_elements(self, inputs):
-        box_dim = int(np.sqrt(self.grid_size))
-        return E.rearrange(
-            inputs,
-            "b (r box_r) (c box_c) p -> b (r c) (box_r box_c) p",
-            r=box_dim,
-            c=box_dim,
-        )
 
     def get_constraints(self, x, ctype):
         if ctype == "row":
@@ -81,25 +64,11 @@ class SudokuSolver(tf.keras.Model):
         return expectation
 
 
-@tf.keras.utils.register_keras_serializable(package="Custom", name="entropy")
-class EntropyRegularizer(tf.keras.regularizers.Regularizer):
-    def __init__(self, coefficient: float = 0.01):
-        self.coefficient = coefficient
-
-    def __call__(self, logits):
-        return self.coefficient * tf.reduce_sum(tf.exp(logits) * logits)
-
-    def get_config(self):
-        return {"coefficient": self.coefficient}
-
-
 class ViSudoDigitClassifier(tf.keras.Model):
 
-    def __init__(self, grid_size: int = 9, entropy_regularizer: float = 1.0):
+    def __init__(self, grid_size: int):
         self.grid_size = grid_size
         super(ViSudoDigitClassifier, self).__init__()
-
-        entropy_regularizer = EntropyRegularizer(entropy_regularizer)
 
         self.model = tf.keras.Sequential()
         self.model.add(tf.keras.layers.Conv2D(6, 5, activation="relu"))
@@ -109,9 +78,7 @@ class ViSudoDigitClassifier(tf.keras.Model):
         self.model.add(tf.keras.layers.Flatten())
         self.model.add(tf.keras.layers.Dense(120, activation="relu"))
         self.model.add(tf.keras.layers.Dense(84, activation="relu"))
-        self.model.add(
-            tf.keras.layers.Dense(grid_size, activity_regularizer=entropy_regularizer)
-        )
+        self.model.add(tf.keras.layers.Dense(grid_size))
 
     def call(self, inputs, training=None, mask=None):
         inputs = E.rearrange(inputs, "b row column ... -> (b row column) ...")

@@ -30,11 +30,12 @@ def train(grid_size, learning_rate, batch_size, N_epochs, seed):
             "epochs": N_epochs,
             "seed": seed,
         },
+        mode="disabled",
     )
     model = ViSudoClassifier(grid_size)
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
     train_data, val_data, test_data = create_loader(grid_size, batch_size)
 
@@ -51,7 +52,9 @@ def train(grid_size, learning_rate, batch_size, N_epochs, seed):
     trainer.train()
 
     test_accuracy = sudoku_accuracy(model, test_data)
+
     print(f"Test accuracy: {test_accuracy}")
+
     wandb.log({"test_accuracy": test_accuracy})
     wandb.finish()
 
@@ -60,21 +63,28 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--grid_size", type=int, default=4)
     parser.add_argument("--learning_rate", type=float, default=0.001)
-    parser.add_argument("--batch_size", type=int, default=5)
-    parser.add_argument("--N_epochs", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--N_epochs", type=int, default=2000)
     parser.add_argument("--N_runs", type=int, default=1)
+    parser.add_argument("--N_workers", type=int, default=1)
     args = parser.parse_args()
 
-    for seed in range(2, 2 + args.N_runs):
-        p = mp.Process(
-            target=train,
-            args=(
-                args.grid_size,
-                args.learning_rate,
-                args.batch_size,
-                args.N_epochs,
-                seed,
-            ),
+    multiprocess_runs = args.N_runs // args.N_workers
+
+    for seed in range(multiprocess_runs):
+        p = mp.Pool(args.N_workers)
+        p.starmap(
+            train,
+            [
+                (
+                    args.grid_size,
+                    args.learning_rate,
+                    args.batch_size,
+                    args.N_epochs,
+                    args.N_workers * seed + i,
+                )
+                for i in range(args.N_workers)
+            ],
         )
-        p.start()
-        p.join()
+    p.close()
+    p.join()

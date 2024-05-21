@@ -37,12 +37,8 @@ class Trainer:
             elif self.encoding == "carry":
                 predictions = tf.stack([pred.logits for pred in predictions], axis=-2)
                 label = tf.expand_dims(label, axis=-1)
-                predictions = tf.gather_nd(predictions, label, batch_dims=2)
-                # predictions = tf.exp(predictions)
-                # predictions = -tf.reduce_sum(predictions, axis=-1)
-                predictions = -tf.reduce_sum(predictions, axis=-1)
-                loss += tf.reduce_mean(predictions, axis=-1)
-                # loss += self.loss_object(label, predictions)
+                loss += self.loss_object(label, predictions)
+
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss
@@ -55,15 +51,24 @@ class Trainer:
             for data in self.train_dataset:
                 images = data[0]
                 labels = data[1]
+
                 start_time = time.time()
                 loss = self.train_step(images, labels)
+                training_time = time.time() - start_time
+
                 avg_loss.update_state(loss)
-                duration.update_state(time.time() - start_time)
+                duration.update_state(training_time)
                 if count % self.log_its == 0:
                     acc = self.val_fn(self.model, self.val_dataset)
-                    print(
-                        f"Epoch {epoch + 1}   Iteration: {count}   Loss: {avg_loss.result().numpy()}  Accuracy: {acc.numpy()}  Time(s): {duration.result().numpy()}"
-                    )
+
+                    print_text = [f"Epoch {epoch + 1}"]
+                    print_text += [f"\tIteration: {count}"]
+                    print_text += [f"\tLoss: {avg_loss.result().numpy()}"]
+                    print_text += [f"\tVal Accuracy: {acc.numpy()}"]
+                    print_text += [f"\tTime(s): {duration.result().numpy()}"]
+
+                    print(*print_text)
+
                     wandb.log(
                         {
                             "loss": avg_loss.result().numpy(),

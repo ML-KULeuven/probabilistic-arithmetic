@@ -7,6 +7,13 @@ from .arithmetics import EPSILON, logit_pad
 
 
 def log_expectation(x):
+    """
+    Implementation of the log-expectation operator for Iversons (comparisons) of probabilistic integers.
+
+    @param x: The probabilistic integer comparison to compute the log-expectation of
+
+    @return: The log-expectation of the probabilistic integer comparison
+    """
     if isinstance(x, bool) and x == False:
         return -np.inf
     elif isinstance(x, PInt):
@@ -23,7 +30,8 @@ def log_expectation(x):
 
 
 def log1mexp(x):
-    """Numerically accurate evaluation of log(1 - exp(x)) for x < 0.
+    """
+    Numerically accurate evaluation of log(1 - exp(x)) for x < 0.
     See [Maechler2012accurate]_ for details.
     https://github.com/pytorch/pytorch/issues/39242
 
@@ -31,14 +39,24 @@ def log1mexp(x):
     mask = -math.log(2) < x  # x < 0
     return tf.where(
         mask,
-        (
-            tf.math.log(tf.math.expm1(-x)),
-            tf.math.log1p(tf.math.exp(-x)),
-        ),
+        tf.math.log(tf.math.expm1(-x)),
+        tf.math.log1p(tf.math.exp(-x)),
     )
 
 
-def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
+def ifthenelse(variable, lt, tbranch, fbranch, accumulate=0):
+    """
+    Implementation of the probabilistic if-then-else statement.
+    Currently only linear inequality constraints are supported.
+
+    @param variable: The probabilistic integer to branch on
+    @param lt: The threshold value
+    @param tbranch: The function to execute if the variable is less than the threshold
+    @param fbranch: The function to execute if the variable is greater or equal to the threshold
+    @param accumulate: The accumulated value of the probabilistic integer
+
+    @return: The accumulated value of the probabilistic integer after branching
+    """
     if variable.lower < lt and variable.upper >= lt:
         t_logits = variable.logits[..., : lt - variable.lower]
         f_logits = variable.logits[..., lt - variable.lower :]
@@ -53,7 +71,7 @@ def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
         f_var = fbranch(f_var)
 
         lower = min(t_var.lower, f_var.lower)
-        upper = max(t_var.lower, f_var.lower)
+        upper = max(t_var.upper, f_var.upper)
 
         t_logits = t_var.logits + t_logprob
         f_logits = f_var.logits + f_logprob
@@ -61,12 +79,11 @@ def ifthenelse(variable, lt, tbranch, fbranch, accumulate):
         t_logits = logit_pad(t_logits, t_var.lower - lower, upper - t_var.upper)
         f_logits = logit_pad(f_logits, f_var.lower - lower, upper - f_var.upper)
 
-        logits = tf.math.log_add_exp(t_logits, f_logits)
+        logits = tf.experimental.numpy.logaddexp(t_logits, f_logits)
 
         variable = PInt(logits, lower)
 
         return accumulate + variable
-    # TODO double check inequalities
     elif variable.lower >= lt:
         return accumulate + tbranch(variable)
     elif variable.upper < lt:

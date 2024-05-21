@@ -15,15 +15,21 @@ from trainer import Trainer
 from evaluate import sum_accuracy, cary_sum_accuracy
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
 def train(
-    digits_per_number, numbers, learning_rate, batch_size, N_epochs, encoding, seed
+    digits_per_number,
+    numbers,
+    learning_rate,
+    batch_size,
+    N_epochs,
+    encoding,
+    seed,
 ):
     wandb.init(
-        mode="online",
+        mode="disabled",
         project="probabilistic-arithmetic",
         name=f"addition_{digits_per_number}_{numbers}_{seed}",
         config={
@@ -69,28 +75,34 @@ def train(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--digits_per_number", default=6, type=int)
+    parser.add_argument("--digits_per_number", default=4, type=int)
     parser.add_argument("--numbers", default=2, type=int)
     parser.add_argument("--learning_rate", default=1e-3, type=float)
     parser.add_argument("--batch_size", default=10, type=int)
-    parser.add_argument("--N_epochs", default=20, type=int)
-    parser.add_argument("--N_runs", default=10, type=int)
+    parser.add_argument("--N_epochs", default=10, type=int)
+    parser.add_argument("--N_runs", default=1, type=int)
     parser.add_argument("--encoding", default="carry", type=str)
-
+    parser.add_argument("--N_workers", default=1, type=int)
     args = parser.parse_args()
 
-    for seed in range(args.N_runs):
-        p = mp.Process(
-            target=train,
-            args=(
-                args.digits_per_number,
-                args.numbers,
-                args.learning_rate,
-                args.batch_size,
-                args.N_epochs,
-                args.encoding,
-                seed,
-            ),
+    multiprocess_runs = args.N_runs // args.N_workers
+
+    for seed in range(multiprocess_runs):
+        p = mp.Pool(args.N_workers)
+        p.starmap(
+            train,
+            [
+                (
+                    args.digits_per_number,
+                    args.numbers,
+                    args.learning_rate,
+                    args.batch_size,
+                    args.N_epochs,
+                    args.encoding,
+                    args.N_workers * seed + i,
+                )
+                for i in range(args.N_workers)
+            ],
         )
-        p.start()
-        p.join()
+    p.close()
+    p.join()

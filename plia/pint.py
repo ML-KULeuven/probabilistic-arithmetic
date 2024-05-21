@@ -11,6 +11,7 @@ from .arithmetics import (
 
 
 class PArray:
+
     def __init__(self, logits, lower):
         self.logits = logits
         self.lower = lower
@@ -28,6 +29,7 @@ class PArray:
 
 
 class PInt(PArray):
+
     def __init__(self, logits, lower, log_input=True):
         if not log_input:
             logits = tf.math.log(logits + EPSILON)
@@ -74,9 +76,11 @@ class PInt(PArray):
             raise NotImplementedError()
 
     def __mod__(self, other):
-        if isinstance(other, int):
+        if isinstance(other, int) and other > 0:
             logits, lower = modPIntInt(self, other)
             return PInt(logits, lower)
+        elif isinstance(other, int) and other < 0:
+            raise ValueError("Modulo operator is not defined for negative integers.")
         else:
             raise NotImplementedError()
 
@@ -89,7 +93,6 @@ class PInt(PArray):
     def __rmul__(self, other: int):
         return self * other
 
-    # TODO double check inequalities
     def __lt__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
             x = self - other

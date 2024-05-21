@@ -61,7 +61,8 @@ def create_numbers(digits_per_number, numbers, data_x, data_y, encoding, batch_s
                 + j * digits_per_number : i * numbers * digits_per_number
                 + (j + 1) * digits_per_number
             ]
-            number_sums.append(sum_labels(number_labels[j]))
+            if encoding == "sum":
+                number_sums.append(sum_labels(number_labels[j]))
 
         if encoding == "sum":
             label = sum(number_sums)
