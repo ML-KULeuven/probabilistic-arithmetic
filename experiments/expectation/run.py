@@ -9,7 +9,6 @@ PARENT_DIR = Path(__file__).resolve().parent
 sys.path.append(str(PARENT_DIR / "../.."))
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
-
 import tensorflow as tf
 
 GPUS = tf.config.experimental.list_physical_devices("GPU")
@@ -86,27 +85,17 @@ def run_expectation(problem, max_bitwidth, device):
 
     times = []
     for bitwidth in range(1, max_bitwidth):
-
-        """
-        Watch out in this experiment! Tensorflow compiles and caches some operations in the background!
-        For example, since the addition is used in the comparisons, it will use the cached operation from the first run!
-
-        Run all of these both separately and when compiled?
-
-        Additional info: bitwidth of 24 uses +- 15GB of VRAM and seems to be max for GPU
-        """
-
-        if problem == "luhn":
-            fargs = [PInt(tf.random.uniform((10,)), 0) for _ in range(bitwidth)]
-        else:
-            number1 = PInt(tf.random.uniform((2**bitwidth,)), 0)
-            number2 = PInt(tf.random.uniform((2**bitwidth,)), 0)
-            fargs = (number1, number2)
-
         with Timer(times, bitwidth):
-            result = str2func[problem](*fargs)
-            result = log_expectation(result)
-            tf.test.experimental.sync_devices()
+            if problem == "luhn":
+                fargs = [PInt(tf.random.uniform((10,)), 0) for _ in range(bitwidth)]
+            else:
+                number1 = PInt(tf.random.uniform((2**bitwidth,)), 0)
+                number2 = PInt(tf.random.uniform((2**bitwidth,)), 0)
+                fargs = (number1, number2)
+
+                result = str2func[problem](*fargs)
+                result = log_expectation(result)
+                tf.test.experimental.sync_devices()
 
     with open(make_path(device, problem) / "times.yaml", "w+") as f:
         yaml.dump(times, f, default_flow_style=False)
