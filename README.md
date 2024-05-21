@@ -9,7 +9,7 @@ This is the code repository for the paper
 
 ---
 
-To install the package, run the following command:
+To install the necessary dependencies, run the following commands in the root directory of the repository:
 
 ```bash
 cd probabilistic-arithmetic
