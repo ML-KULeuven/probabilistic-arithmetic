@@ -52,7 +52,7 @@ python experiments/addition/run.py --digits_per_number 2 --N_epochs 10 --learnin
 Finally, optimising a 4x4 visual sudoku task can be run with the command.
 
 ```bash
-python experiments/visudoku/run.py --grid_size 4
+python experiments/visudo/run.py --grid_size 4
 ```
 
 
