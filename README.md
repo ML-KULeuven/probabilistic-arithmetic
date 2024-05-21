@@ -22,6 +22,10 @@ pip install -r requirements.txt
 
 ---
 
+### Inference
+
+---
+
 To run the inference experiment, the following command will initiate a single run of each of the four
 inference tasks. Available options are which device to run on and the maximum bitwidth/sequence length to test.
 For example, the following command will run the experiments on the GPU and test probabilistic integers
@@ -30,6 +34,10 @@ of domains up to 2 to the power 24.
 ```bash
 python experiments/expectation/run.py --device gpu --max_bitwidth 24
 ```
+
+### Learning
+
+---
 
 The neurosymbolic learning experiments can be run using the following commands.
 Note that the datasets will be automatically downloaded when first running the experiments.
