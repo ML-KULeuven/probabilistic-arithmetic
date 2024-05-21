@@ -1,4 +1,4 @@
-# Probabilistic Linear Integer Arithmetic (PLIA)
+# Probabilistic Linear Integer Arithmetic (PLIA<sub>t</sub>)
 
 ---
 
