@@ -76,11 +76,9 @@ class PInt(PArray):
             raise NotImplementedError()
 
     def __mod__(self, other):
-        if isinstance(other, int) and other > 0:
+        if isinstance(other, int):
             logits, lower = modPIntInt(self, other)
             return PInt(logits, lower)
-        elif isinstance(other, int) and other < 0:
-            raise ValueError("Modulo operator is not defined for negative integers.")
         else:
             raise NotImplementedError()
 
@@ -93,6 +91,8 @@ class PInt(PArray):
     def __rmul__(self, other: int):
         return self * other
 
+    # TODO implement comparisons using total order
+    # https://docs.python.org/3.6/library/functools.html#functools.total_ordering
     def __lt__(self, other):
         if isinstance(other, (int, tf.Tensor, PInt)):
             x = self - other

@@ -25,13 +25,13 @@ def luhn_checksum(identifier):
 
     for i, digit in enumerate(identifier):
         if i % 2 == len(identifier) % 2:
-            check = ifthenelse(
+            digit = ifthenelse(
                 digit,
                 lt=5,
                 tbranch=lambda x: 2 * x,
                 fbranch=lambda x: 2 * x - 9,
-                accumulate=check,
             )
+            check = check + digit
         else:
             check = check + digit
         check = check % 10

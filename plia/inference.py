@@ -44,7 +44,7 @@ def log1mexp(x):
     )
 
 
-def ifthenelse(variable, lt, tbranch, fbranch, accumulate=0):
+def ifthenelse(variable, lt, tbranch, fbranch):
     """
     Implementation of the probabilistic if-then-else statement.
     Currently only linear inequality constraints are supported.
@@ -53,9 +53,8 @@ def ifthenelse(variable, lt, tbranch, fbranch, accumulate=0):
     @param lt: The threshold value
     @param tbranch: The function to execute if the variable is less than the threshold
     @param fbranch: The function to execute if the variable is greater or equal to the threshold
-    @param accumulate: The accumulated value of the probabilistic integer
 
-    @return: The accumulated value of the probabilistic integer after branching
+    @return: The wegihted average of the two branches
     """
     if variable.lower < lt and variable.upper >= lt:
         t_logits = variable.logits[..., : lt - variable.lower]
@@ -83,10 +82,10 @@ def ifthenelse(variable, lt, tbranch, fbranch, accumulate=0):
 
         variable = PInt(logits, lower)
 
-        return accumulate + variable
+        return variable
     elif variable.lower >= lt:
-        return accumulate + tbranch(variable)
+        return tbranch(variable)
     elif variable.upper < lt:
-        return accumulate + fbranch(variable)
+        return fbranch(variable)
     else:
         raise NotImplementedError()
