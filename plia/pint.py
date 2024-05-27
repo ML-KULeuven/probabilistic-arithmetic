@@ -75,10 +75,13 @@ class PInt(PArray):
         else:
             raise NotImplementedError()
 
+    # TODO allow for neg integers
     def __mod__(self, other):
-        if isinstance(other, int):
+        if isinstance(other, int) and other > 0:
             logits, lower = modPIntInt(self, other)
             return PInt(logits, lower)
+        elif isinstance(other, int) and other < 0:
+            raise ValueError("Modulo operator is not defined for negative integers.")
         else:
             raise NotImplementedError()
 
